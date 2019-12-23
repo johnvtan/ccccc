@@ -1,7 +1,7 @@
 #include "list.h"
 #include <stdio.h>
 
-list_t *new_list(void) {
+list_t *list_new(void) {
     list_t *list = malloc(sizeof(list_t));
     if (!list)
         return NULL;
@@ -44,6 +44,15 @@ void *list_pop(list_t *list) {
 
     free(removed);
     return ret_data;
+}
+
+void *list_peek(list_t *list) {
+    if (!list)
+        return NULL;
+    if (!list->len)
+        return NULL;
+    assert(list->head->next);
+    return list->head->next->data;
 }
 
 // free entire list, including the data pointers that are contained in it

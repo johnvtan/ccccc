@@ -15,8 +15,9 @@ typedef struct {
     int len;
 } list_t;
 
-list_t *new_list(void);
+list_t *list_new(void);
 int list_push(list_t *list, void *data);
+void *list_peek(list_t *list);
 void *list_pop(list_t *list);
 void list_free(list_t *list);
 

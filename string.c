@@ -1,5 +1,4 @@
 #include "string.h"
-#include <strings.h>
 
 #define STRING_DEFAULT_CAPACITY (8)
 
@@ -8,7 +7,7 @@ static void realloc_string(string_t *string) {
     string->buf = realloc(string->buf, string->capacity);
 }
 
-string_t *new_string(void) {
+string_t *string_new(void) {
     string_t *new = malloc(sizeof(string_t));
     new->buf = malloc(sizeof(char) * STRING_DEFAULT_CAPACITY);
     new->len = 0;

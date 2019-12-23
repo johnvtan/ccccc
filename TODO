@@ -1,0 +1,6 @@
+Tasks in ~1 hr chunks
+- Flesh out lexer - actually spit out tokens that aren't just strings
+- Refactor tokenizing special chars (implement/use a map? just an assoc list)
+- Flesh out ast structure. Is a program just a list of function definitions?
+- Figure out parsing algorithm to turn a list of tokens into a tree(?) of statements
+- Then codegen stuff
