@@ -56,6 +56,12 @@ static int string_literal(char *p, token_t *token) {
     return -1;
 }
 
+static int char_literal(char *p, token_t *token) {
+    if (*p != '\'')
+        return -1;
+    return -1;
+}
+
 // TODO only handles decimal integers
 static int number_literal(char *p, token_t *token) {
     if (!isdigit(*p))
@@ -126,7 +132,10 @@ list_t *tokenize(string_t *input) {
             buf++;
             continue;
         }
+
         advance = 0;
+        
+        // freeing stuff is for squares
         curr_token = malloc(sizeof(token_t));
 
         advance = string_literal(buf, curr_token);
@@ -134,6 +143,10 @@ list_t *tokenize(string_t *input) {
             goto next;
 
         advance = number_literal(buf, curr_token);
+        if (advance > 0)
+            goto next;
+
+        advance = char_literal(buf, curr_token);
         if (advance > 0)
             goto next;
 

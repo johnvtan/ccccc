@@ -5,7 +5,7 @@
 
 int main(void) {
     char *text = "int main(void) {\
-                  int x=2+2;\
+                  int x=2+2345;\
                   return x;\
                   }";
 
