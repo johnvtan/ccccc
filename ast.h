@@ -42,7 +42,7 @@ typedef struct return_stmt {
 typedef struct stmt {
     stmt_type_t type; 
     union {
-        return_stmt_t ret;
+        return_stmt_t *ret;
         // TODO fill in with other statements
     };
 } stmt_t;

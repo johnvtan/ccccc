@@ -9,6 +9,7 @@ typedef struct {
     int capacity;
 } string_t;
 
+string_t *file_to_string(char *filename);
 string_t *string_new(void);
 void string_add(string_t *string, char c);
 void string_append(string_t *string, char *s, int len);

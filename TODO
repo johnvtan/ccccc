@@ -1,16 +1,20 @@
-Tasks in ~1-2 hr chunks
+=========Core functionality==========
 x Flesh out lexer - actually spit out tokens that aren't just strings
 x Refactor tokenizing special chars (implement/use a map? just an assoc list)
 x Flesh out ast structure. Is a program just a list of function definitions?
     - Did this a bit. Need to clarify how I want to handle typing, variable declarations
 - Figure out how to parse function definitions, particularly the parameters and how functions should
     be stored.
-    - Implement expect function where I can expect a token and error out if it's bad
-- TESTING!!! for containers (list, string) and tokenizing/parsing code.
+    x Implement expect function where I can expect a token and error out if it's bad
+    - Add a comma token which I feel like is needed for parameter parsing
+    - Ability to introspect on an AST. Print outs?
+- UNIT TESTING!!! for containers (list, string) and tokenizing/parsing code.
     - I'd like to be able to spit out useful errors as well bc that would be easier to debug
+    - I am very paranoid about seg faulting and I'm sure there are a ton of bugs here
+- Read program from string into file
 
-- Actually read programs in from files
-- Then codegen stuff
 
-Maybe todo
-- Implement good freeing code
+==========Nice to have==========
+- Decent error messages
+- Properly reclaim used memory
+
