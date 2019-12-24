@@ -13,12 +13,14 @@ static token_t *expect_next(list_t *tokens, token_type_t expectation) {
 
 // TODO is this necessar/can i put all types together
 static builtin_type_t token_to_builtin_type(token_type_t t) {
+    printf("TRYING TO SWITCH\n");
     switch (t) {
         case TOK_INT_TYPE:
             return TYPE_INT;
         case TOK_VOID_TYPE:
             return TYPE_VOID;
         default:
+            printf("UNRECOGNIZED: %d\n", (int)t);
             return TYPE_UNRECOGNIZED;
     }
 }
@@ -64,8 +66,10 @@ static fn_def_t *parse_fn_def(list_t *tokens) {
         return NULL; // TODO cleanup? actual error handling?
 
     fn->ret_type = token_to_builtin_type(curr->type);
-    if (fn->ret_type == TYPE_UNRECOGNIZED)
+    if (fn->ret_type == TYPE_UNRECOGNIZED) {
+        printf("UNRECOGNIZED TYPE\n");
         return NULL;
+    }
 
     // next should be an identifier
     curr = expect_next(tokens, TOK_IDENT);

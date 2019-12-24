@@ -150,15 +150,15 @@ list_t *tokenize(string_t *input) {
         if (advance > 0)
             goto next;
 
-        advance = identifier(buf, curr_token);
-        if (advance > 0)
-            goto next;
-
         advance = keyword(buf, curr_token);
         if (advance > 0)
             goto next;
 
         advance = special_char(buf, curr_token);
+        if (advance > 0)
+            goto next;
+
+        advance = identifier(buf, curr_token);
         if (advance > 0)
             goto next;
 

@@ -13,7 +13,7 @@ int main(void) {
     string_append(input, text, strlen(text));
 
     list_t *tokens = tokenize(input);
-    program_t *prog = parse(tokens);
+//    program_t *prog = parse(tokens);
 
     token_t *token;
     while ((token = list_pop(tokens))) {
