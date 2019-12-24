@@ -63,4 +63,6 @@ typedef struct program {
 } program_t;
 
 program_t *parse(list_t *tokens);
+void print_ast(program_t *prog);
+
 #endif

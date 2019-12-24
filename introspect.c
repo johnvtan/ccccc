@@ -1,0 +1,36 @@
+#include "ast.h"
+#include "tokenize.h"
+
+void print_expr(expr_t *e, int indent) {
+    return;
+}
+
+void print_stmt(stmt_t *s, int indent) {
+    if (!s)
+        return;
+    printf("Statement: ");
+    switch (s->type) {
+        case STMT_RETURN:
+            printf("return\n");
+            break;
+        default:
+            printf("IDK PANIC STATEMENT: %d\n", (int)(s->type));
+            break;
+    }
+}
+
+void print_ast(program_t *prog) {
+    if (!prog)
+        return;
+    for (fn_def_t *fn = list_pop(prog->fn_defs); fn; fn = list_pop(prog->fn_defs)) {
+        printf("Function Definition: %s\n", string_get(fn->name)); 
+        printf("Params: ");
+        if (!fn->params)
+            printf("VOID\n");
+        else
+            printf("IDK\n");
+        for (stmt_t *s = list_pop(fn->stmts); s; s = list_pop(fn->stmts)) {
+            print_stmt(s, 1);
+        }
+    }
+}

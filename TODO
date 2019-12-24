@@ -15,6 +15,7 @@ x Flesh out ast structure. Is a program just a list of function definitions?
 
 
 ==========Nice to have==========
+- Less questionable organization of code
 - Decent error messages
 - Properly reclaim used memory
 

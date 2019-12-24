@@ -13,14 +13,12 @@ static token_t *expect_next(list_t *tokens, token_type_t expectation) {
 
 // TODO is this necessar/can i put all types together
 static builtin_type_t token_to_builtin_type(token_type_t t) {
-    printf("TRYING TO SWITCH\n");
     switch (t) {
         case TOK_INT_TYPE:
             return TYPE_INT;
         case TOK_VOID_TYPE:
             return TYPE_VOID;
         default:
-            printf("UNRECOGNIZED: %d\n", (int)t);
             return TYPE_UNRECOGNIZED;
     }
 }
@@ -30,10 +28,12 @@ static expr_t *parse_expr(list_t *tokens) {
 }
 
 static return_stmt_t *parse_return_stmt(list_t *tokens) {
+    printf("parsing return\n");
     return NULL;
 }
 
 static stmt_t *parse_stmt(list_t *tokens) {
+    printf("parsing stmt\n");
     if (!tokens)
         return NULL;
     stmt_t *ret = malloc(sizeof(stmt_t));
@@ -56,6 +56,7 @@ static stmt_t *parse_stmt(list_t *tokens) {
 }
 
 static fn_def_t *parse_fn_def(list_t *tokens) {
+    printf("parsing fn def\n");
     fn_def_t *fn = malloc(sizeof(fn_def_t));
     fn->params = list_new();
     fn->stmts = list_new();

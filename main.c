@@ -5,7 +5,6 @@
 
 int main(void) {
     char *text = "int main(void) {\
-                  int x=2+2345;\
                   return x;\
                   }";
 
@@ -13,11 +12,10 @@ int main(void) {
     string_append(input, text, strlen(text));
 
     list_t *tokens = tokenize(input);
-//    program_t *prog = parse(tokens);
+    program_t *prog = parse(tokens);
+    if (!prog)
+        printf("UHOHSPAGHETIOS\n");
 
-    token_t *token;
-    while ((token = list_pop(tokens))) {
-        print_token(token);
-    }
+    print_ast(prog);
     return 0;
 }
