@@ -40,6 +40,8 @@ static stmt_t *parse_stmt(list_t *tokens) {
     token_t *curr;
 
     // TODO only parse return statements for now
+    // TODO not a while loop, should just match a pattern until a semicolon and error if it doesn't
+    // match any pattern.
     while ((curr = list_peek(tokens)) && curr->type != TOK_SEMICOLON) {
         curr = list_pop(tokens);
         if (curr->type == TOK_RETURN) {
@@ -50,6 +52,12 @@ static stmt_t *parse_stmt(list_t *tokens) {
             ret->ret = ret_stmt;
             continue;
         }
+
+        if (curr->type == TOK_IDENT) {
+            printf("found ident %s\n", string_get(curr->ident));
+        }
+
+        printf("idk how we got here, tok type = %d\n", (int)(curr->type));
     }
     expect_next(tokens, TOK_SEMICOLON);
     return ret;
