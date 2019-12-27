@@ -4,6 +4,8 @@
 void print_expr(expr_t *e, int indent) {
     if (!e)
         return;
+    for (int i = 0; i < indent; i++)
+        printf("\t");
     switch(e->type) {
         case INT_LITERAL:
             printf("Int literal %d\n", e->integer);
@@ -20,6 +22,8 @@ void print_expr(expr_t *e, int indent) {
 void print_stmt(stmt_t *s, int indent) {
     if (!s)
         return;
+    for (int i = 0; i < indent; i++)
+        printf("\t");
     printf("Statement: ");
     switch (s->type) {
         case STMT_RETURN:

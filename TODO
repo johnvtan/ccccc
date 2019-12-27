@@ -7,11 +7,14 @@ x Flesh out ast structure. Is a program just a list of function definitions?
     be stored.
     x Implement expect function where I can expect a token and error out if it's bad
     - Add a comma token which I feel like is needed for parameter parsing
-    - Ability to introspect on an AST. Print outs?
+    x Ability to introspect on an AST. Print outs?
+        - This sort of works
+    - make code not a giant mess
+- Read program from string into file
+- Generate Assembly for first pass
 - UNIT TESTING!!! for containers (list, string) and tokenizing/parsing code.
     - I'd like to be able to spit out useful errors as well bc that would be easier to debug
     - I am very paranoid about seg faulting and I'm sure there are a ton of bugs here
-- Read program from string into file
 
 
 ==========Nice to have==========
@@ -19,3 +22,20 @@ x Flesh out ast structure. Is a program just a list of function definitions?
 - Decent error messages
 - Properly reclaim used memory
 
+
+==========Notes==========
+What's an expression in C? I'm thinking it's one of:
+    - A literal
+    - A function call
+    - An identifier/variable
+    - A unary expression (e.g., x++, --x, *x, x->y, x.y, etc.), which is composed of an expression
+    and a unary op
+        - (3+2)++ is NOT a valid C expression - compiler says that for pre/postfix inc/dec the
+        expression must be an lval
+        - however, *(int*)(3+2) is valid, so maybe pointer deref and pre/postfix inc/dec are
+        fundamentally different?
+    - A binary operation (+, -, /, *, <<, etc), which is composed of an expression, an operator, and
+    another expression
+
+How the fuck are pointers implemented? I guess at some point I'll want to do an IR, probably similar
+to the one in the Racket book I did at RC which was just x86 assembly but with variable names/types.

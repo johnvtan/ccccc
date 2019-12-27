@@ -7,6 +7,23 @@ static void realloc_string(string_t *string) {
     string->buf = realloc(string->buf, string->capacity);
 }
 
+string_t *file_to_string(char *filename) {
+    FILE *fp = fopen(filename, "r");
+    if (!fp)
+        return NULL;
+    char buf[1024];
+    string_t *new = string_new(); 
+    while (1) {
+        int nread = fread(buf, 1, sizeof(buf), fp);
+        if (nread == 0)
+            break;
+        string_append(new, buf, nread);
+    }
+
+    string_append(new, "\n\n", 2);
+    return new;
+}
+
 string_t *string_new(void) {
     string_t *new = malloc(sizeof(string_t));
     new->buf = malloc(sizeof(char) * STRING_DEFAULT_CAPACITY);

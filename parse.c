@@ -98,7 +98,9 @@ static fn_def_t *parse_fn_def(list_t *tokens) {
     // parsing parameters
     // TODO only handling functions without parameters right now
     expect_next(tokens, TOK_OPEN_PAREN);
-    expect_next(tokens, TOK_VOID_TYPE);
+
+    // TODO tests don't put void there
+    //expect_next(tokens, TOK_VOID_TYPE);
     expect_next(tokens, TOK_CLOSE_PAREN);
     expect_next(tokens, TOK_OPEN_BRACE);
 

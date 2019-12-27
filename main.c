@@ -3,14 +3,22 @@
 #include <assert.h>
 #include "compile.h"
 
-int main(void) {
-    char *text = "int main(void) {\
-                  return 42;\
-                  }";
+void usage(void) {
+    printf("COMPILERBABY <filename>\n");
+}
 
-    string_t *input = string_new();
-    string_append(input, text, strlen(text));
-
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        usage();
+        return -1;
+    }
+   
+    char *filename = argv[1];
+    string_t *input = file_to_string(filename);
+    if (!input) {
+        return -1;
+    }
+    printf("input\n%s\n", string_get(input));
     list_t *tokens = tokenize(input);
 #if 1
     program_t *prog = parse(tokens);
