@@ -23,13 +23,32 @@ static builtin_type_t token_to_builtin_type(token_type_t t) {
     }
 }
 
+// TODO only handling single numbers/characters right now
 static expr_t *parse_expr(list_t *tokens) {
-    return NULL;
+    expr_t *expr = malloc(sizeof(expr_t));
+    token_t *next = list_pop(tokens);
+    if (next->type == TOK_INT_LIT) {
+        expr->type = INT_LITERAL;
+        expr->integer = next->int_literal;
+        return expr;
+    }
+
+    if (next->type == TOK_CHAR_LIT) {
+        expr->type = CHAR_LITERAL;
+        expr->character = next->char_literal;
+        return expr;
+    }
+
+    printf("%d\n", next->type);
+    UNREACHABLE("Unknown expr type");
 }
 
 static return_stmt_t *parse_return_stmt(list_t *tokens) {
-    printf("parsing return\n");
-    return NULL;
+    return_stmt_t *ret = malloc(sizeof(return_stmt_t));
+    expect_next(tokens, TOK_RETURN);
+    ret->expr = parse_expr(tokens);
+    expect_next(tokens, TOK_SEMICOLON);
+    return ret;
 }
 
 static stmt_t *parse_stmt(list_t *tokens) {
@@ -42,25 +61,17 @@ static stmt_t *parse_stmt(list_t *tokens) {
     // TODO only parse return statements for now
     // TODO not a while loop, should just match a pattern until a semicolon and error if it doesn't
     // match any pattern.
-    while ((curr = list_peek(tokens)) && curr->type != TOK_SEMICOLON) {
-        curr = list_pop(tokens);
-        if (curr->type == TOK_RETURN) {
-            return_stmt_t *ret_stmt = parse_return_stmt(tokens);
-            if (!ret_stmt)
-                return NULL;
-            ret->type = STMT_RETURN;
-            ret->ret = ret_stmt;
-            continue;
-        }
-
-        if (curr->type == TOK_IDENT) {
-            printf("found ident %s\n", string_get(curr->ident));
-        }
-
-        printf("idk how we got here, tok type = %d\n", (int)(curr->type));
+    curr = list_peek(tokens);
+    if (curr->type == TOK_RETURN) {
+        return_stmt_t *ret_stmt = parse_return_stmt(tokens);
+        if (!ret_stmt)
+            return NULL;
+        ret->type = STMT_RETURN;
+        ret->ret = ret_stmt;
+        return ret;
     }
-    expect_next(tokens, TOK_SEMICOLON);
-    return ret;
+
+    UNREACHABLE("Unknown statement type");
 }
 
 static fn_def_t *parse_fn_def(list_t *tokens) {

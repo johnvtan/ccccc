@@ -5,7 +5,7 @@
 
 int main(void) {
     char *text = "int main(void) {\
-                  return x;\
+                  return 42;\
                   }";
 
     string_t *input = string_new();

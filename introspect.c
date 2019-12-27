@@ -2,7 +2,19 @@
 #include "tokenize.h"
 
 void print_expr(expr_t *e, int indent) {
-    return;
+    if (!e)
+        return;
+    switch(e->type) {
+        case INT_LITERAL:
+            printf("Int literal %d\n", e->integer);
+            break;
+        case CHAR_LITERAL:
+            printf("char literal %c\n", e->character);
+            break;
+        default:
+            printf("UNKNOWN EXPR\n");
+            break;
+    }
 }
 
 void print_stmt(stmt_t *s, int indent) {
@@ -12,6 +24,7 @@ void print_stmt(stmt_t *s, int indent) {
     switch (s->type) {
         case STMT_RETURN:
             printf("return\n");
+            print_expr(s->ret->expr, indent + 1);
             break;
         default:
             printf("IDK PANIC STATEMENT: %d\n", (int)(s->type));
