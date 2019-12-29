@@ -20,17 +20,17 @@ int main(int argc, char **argv) {
     }
     printf("input\n%s\n", string_get(input));
     list_t *tokens = tokenize(input);
-#if 1
+
     program_t *prog = parse(tokens);
     if (!prog)
-        printf("UHOHSPAGHETIOS\n");
+        return -1;
 
-    print_ast(prog);
-#else
-    token_t *token;
-    while ((token = list_pop(tokens))) {
-        print_token(token);
+    list_t *instrs = gen_pseudo_asm(prog);
+    if (!instrs || instrs->len == 0) {
+        printf("OH NO\n");
+        return -1;
     }
-#endif
+
+    print_asm(instrs);
     return 0;
 }

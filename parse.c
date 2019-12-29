@@ -52,7 +52,6 @@ static return_stmt_t *parse_return_stmt(list_t *tokens) {
 }
 
 static stmt_t *parse_stmt(list_t *tokens) {
-    printf("parsing stmt\n");
     if (!tokens)
         return NULL;
     stmt_t *ret = malloc(sizeof(stmt_t));
@@ -73,7 +72,6 @@ static stmt_t *parse_stmt(list_t *tokens) {
 }
 
 static fn_def_t *parse_fn_def(list_t *tokens) {
-    printf("parsing fn def\n");
     fn_def_t *fn = malloc(sizeof(fn_def_t));
     fn->params = list_new();
     fn->stmts = list_new();
@@ -105,6 +103,12 @@ static fn_def_t *parse_fn_def(list_t *tokens) {
     // parse the statements one by one until we find the closed brace
     while ((curr = list_peek(tokens)) && curr->type != TOK_CLOSE_BRACE) {
         stmt_t *stmt = parse_stmt(tokens); 
+        // TODO return type checking here?
+        /* something like:
+         * if (stmt->type == STMT_RETURN) {
+         *     assert(stmt->expr->type == fn->ret_type);
+         * }
+         */
         list_push(fn->stmts, stmt);
     }
 

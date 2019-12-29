@@ -13,6 +13,7 @@ x Flesh out ast structure. Is a program just a list of function definitions?
 x Read program from string into file
 - Remove unnecessary pointers from typedefs
 - Generate Assembly for first pass
+- add list_concat(list_t *l1, list_t *l2) function that will append l2 to the end of l1
 - UNIT TESTING!!! for containers (list, string) and tokenizing/parsing code.
     - I'd like to be able to spit out useful errors as well bc that would be easier to debug
     - I am very paranoid about seg faulting and I'm sure there are a ton of bugs here

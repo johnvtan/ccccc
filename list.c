@@ -28,6 +28,21 @@ int list_push(list_t *list, void *data) {
     return 0;
 }
 
+// appends l2 to the end of l1
+// TODO better test this code too
+int list_concat(list_t *l1, list_t *l2) {
+    if (!l1 || !l2)
+        return -1;
+
+    // I have a dummy head, I think
+    l1->tail->next = l2->head->next;
+    l1->tail = l2->tail;
+    l1->len += l2->len;
+    free(l2->head);
+    free(l2);
+    return 0;
+}
+
 // pops from front of list
 void *list_pop(list_t *list) {
     if (!list)
