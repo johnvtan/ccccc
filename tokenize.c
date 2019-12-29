@@ -151,8 +151,14 @@ list_t *tokenize(string_t *input) {
             goto next;
 
         advance = keyword(buf, curr_token);
-        if (advance > 0)
+        if (advance > 0) {
+            char next = *(buf + advance);
+            if (!is_whitespace(next) && next != ';') {
+                printf("Bad input program: malformed keyword\n");
+                exit(-1);
+            }
             goto next;
+        }
 
         advance = special_char(buf, curr_token);
         if (advance > 0)

@@ -10,7 +10,8 @@ x Flesh out ast structure. Is a program just a list of function definitions?
     x Ability to introspect on an AST. Print outs?
         - This sort of works
     - make code not a giant mess
-- Read program from string into file
+x Read program from string into file
+- Remove unnecessary pointers from typedefs
 - Generate Assembly for first pass
 - UNIT TESTING!!! for containers (list, string) and tokenizing/parsing code.
     - I'd like to be able to spit out useful errors as well bc that would be easier to debug

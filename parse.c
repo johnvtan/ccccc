@@ -59,8 +59,6 @@ static stmt_t *parse_stmt(list_t *tokens) {
     token_t *curr;
 
     // TODO only parse return statements for now
-    // TODO not a while loop, should just match a pattern until a semicolon and error if it doesn't
-    // match any pattern.
     curr = list_peek(tokens);
     if (curr->type == TOK_RETURN) {
         return_stmt_t *ret_stmt = parse_return_stmt(tokens);
