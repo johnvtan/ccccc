@@ -18,7 +18,6 @@ int main(int argc, char **argv) {
     if (!input) {
         return -1;
     }
-    printf("input\n%s\n", string_get(input));
     list_t *tokens = tokenize(input);
 
     program_t *prog = parse(tokens);

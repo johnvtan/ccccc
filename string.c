@@ -46,7 +46,8 @@ void string_append(string_t *string, char *s, int len) {
 }
 
 char *string_get(string_t *string) {
-    string_add(string, '\0');
+    if (string->buf[string->len] != '\0')
+        string_add(string, '\0');
     return string->buf;
 }
 

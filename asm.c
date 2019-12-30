@@ -20,9 +20,9 @@ static list_t *stmt_to_instrs(stmt_t *stmt) {
         list_push(ret, out);
 
         output_t *retq = malloc(sizeof(output_t));
-        out->type = OUTPUT_INSTR;
-        out->instr = malloc(sizeof(instr_t));
-        out->instr->op = OP_RETQ;
+        retq->type = OUTPUT_INSTR;
+        retq->instr = malloc(sizeof(instr_t));
+        retq->instr->op = OP_RETQ;
         list_push(ret, retq);
         return ret;
     }
@@ -67,7 +67,6 @@ list_t *gen_pseudo_asm(program_t *prog) {
         list_t *fn_instrs = fn_def_to_pseudo_asm(fn_def);
         if (!fn_instrs)
             return NULL;
-
         list_concat(output, fn_instrs);
     }
     return output;
@@ -124,6 +123,7 @@ void print_asm(list_t *output) {
     output_t *curr = list_pop(output);
     for (; curr; curr = list_pop(output)) {
         if (curr->type == OUTPUT_LABEL) {
+            printf(".globl %s\n", string_get(curr->label));
             printf("%s:\n", string_get(curr->label));
             continue;
         }
@@ -133,7 +133,7 @@ void print_asm(list_t *output) {
             if (instr->op == OP_MOV) {
                 printf("\t%s $%lu, %s\n", op_to_string(instr->op), instr->src.imm, reg_to_string(instr->dst.reg));
             } else if (instr->op == OP_RETQ) {
-                printf("retq\n");
+                printf("\tretq\n");
             }
             continue;
         }
