@@ -1,28 +1,46 @@
 #include "compile.h"
 
+static int op_to_num_args(opcode_t op) {
+    switch (op) {
+        case OP_ADD:
+        case OP_MOV:
+            return 2;
+        case OP_RETQ:
+        default:
+            return 0;
+    }
+}
+
+static output_t *new_instr(opcode_t op) {
+    output_t *out = malloc(sizeof(output_t));
+    if (!out)
+        return NULL;
+    out->type = OUTPUT_INSTR;
+    out->instr.op = op;
+    out->instr.num_args = op_to_num_args(op);
+    return out;
+}
+
 // TODO does each statement correspond to an instruction?
 static list_t *stmt_to_instrs(stmt_t *stmt) {
     if (!stmt)
         return NULL;
     list_t *ret = list_new();
     if (stmt->type == STMT_RETURN) {
-        output_t *out = malloc(sizeof(output_t));  
-        out->type = OUTPUT_INSTR;
-        out->instr = malloc(sizeof(instr_t));
-        out->instr->op = OP_MOV;
+        output_t *mov = new_instr(OP_MOV);
 
         // TODO only handle integers
         if (stmt->ret->expr->type != INT_LITERAL)
             return NULL;
 
-        out->instr->src.imm = stmt->ret->expr->integer;
-        out->instr->dst.reg = REG_RAX;
-        list_push(ret, out);
+        mov->instr.src.type = OPERAND_IMM;
+        mov->instr.src.imm = stmt->ret->expr->integer;
 
-        output_t *retq = malloc(sizeof(output_t));
-        retq->type = OUTPUT_INSTR;
-        retq->instr = malloc(sizeof(instr_t));
-        retq->instr->op = OP_RETQ;
+        mov->instr.dst.type = OPERAND_REG;
+        mov->instr.dst.reg = REG_RAX;
+        list_push(ret, mov);
+
+        output_t *retq = new_instr(OP_RETQ);
         list_push(ret, retq);
         return ret;
     }
@@ -115,6 +133,28 @@ static char *op_to_string(opcode_t op) {
     return NULL;
 }
 
+static char *operand_to_string(operand_t operand) {
+    if (operand.type == OPERAND_REG) {
+        return reg_to_string(operand.reg);
+    }
+
+    string_t string;
+    char buf[100];
+    if (string_init(&string) < 0)
+        return NULL;
+    
+    if (operand.type == OPERAND_IMM) {
+        snprintf(buf, 100, "$%ld", operand.imm);
+    } else if (operand.type == OPERAND_MEM_LOC) {
+        snprintf(buf, 100, "$%ld(%s)", operand.mem.offset, reg_to_string(operand.mem.reg));
+    } else {
+        printf("trying to print a VAR. uncool man\n");
+        exit(-1);
+    }
+
+    string_append(&string, buf, strlen(buf));
+    return string_get(&string);
+}
 
 void print_asm(list_t *output) {
     if (!output)
@@ -129,11 +169,16 @@ void print_asm(list_t *output) {
         }
 
         if (curr->type == OUTPUT_INSTR) {
-            instr_t *instr = curr->instr;
-            if (instr->op == OP_MOV) {
-                printf("\t%s $%lu, %s\n", op_to_string(instr->op), instr->src.imm, reg_to_string(instr->dst.reg));
-            } else if (instr->op == OP_RETQ) {
-                printf("\tretq\n");
+            instr_t instr = curr->instr;
+            if (instr.num_args == 2) {
+                printf("\t%s %s, %s\n", op_to_string(instr.op), operand_to_string(instr.src), operand_to_string(instr.dst));
+            } else if (instr.num_args == 1) {
+                printf("\t%s %s\n", op_to_string(instr.op), operand_to_string(instr.src));
+            } else if (instr.num_args == 0) {
+                printf("\t%s\n", op_to_string(instr.op));
+            } else {
+                printf("BAD NUM ARGS\n");
+                exit(-1);
             }
             continue;
         }

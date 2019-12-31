@@ -5,13 +5,13 @@
 #include <stdio.h>
 #include "ast.h" // for var_t
 
-typedef enum opcode {
+typedef enum {
     OP_MOV = 1,
     OP_ADD,
     OP_RETQ,
 } opcode_t;
 
-typedef enum reg {
+typedef enum {
     REG_RAX = 1,
     REG_RBX,
     REG_RCX,
@@ -30,39 +30,50 @@ typedef enum reg {
     REG_R15,
 } reg_t;
 
-typedef struct mem_loc_t {
+typedef struct {
     // register containing base address of memory location
     reg_t reg;
 
     // offset from the value in reg
-    int offset;
+    int64_t offset;
 } mem_loc_t;
 
-typedef uint64_t imm_t;
+typedef int64_t imm_t;
 
-typedef union operand {
-    reg_t reg;
-    mem_loc_t mem;
-    var_t var;
-    imm_t imm;
+typedef enum {
+    OPERAND_REG,
+    OPERAND_MEM_LOC,
+    OPERAND_VAR,
+    OPERAND_IMM,
+} operand_type_t;
+
+typedef struct {
+    operand_type_t type;
+    union {
+        reg_t reg;
+        mem_loc_t mem;
+        var_t var;
+        imm_t imm;
+    };
 } operand_t;
 
 // TODO do all instructions have only one or two operands?
-typedef struct instr {
+typedef struct {
     opcode_t op;
+    int num_args;
     operand_t src;
     operand_t dst;
 } instr_t;
 
-typedef enum output_type {
+typedef enum {
     OUTPUT_INSTR,
     OUTPUT_LABEL,
 } output_type_t;
 
-typedef struct output {
+typedef struct {
     output_type_t type;
     union {
-        instr_t *instr;
+        instr_t instr;
         string_t *label;
     };
 } output_t;
