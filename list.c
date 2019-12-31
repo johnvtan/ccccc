@@ -3,14 +3,18 @@
 
 list_t *list_new(void) {
     list_t *list = malloc(sizeof(list_t));
-    if (!list)
+    if (list_init(list) < 0)
         return NULL;
+    return list;
+}
 
+int list_init(list_t *list) {
+    if (!list)
+        return -1;
     list->len = 0;
-    // dummy head
     list->head = list->tail = malloc(sizeof(list_node_t));
     list->head->next = NULL;
-    return list;
+    return 0;
 }
 
 int list_push(list_t *list, void *data) {

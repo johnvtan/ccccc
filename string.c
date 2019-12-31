@@ -26,10 +26,20 @@ string_t *file_to_string(char *filename) {
 
 string_t *string_new(void) {
     string_t *new = malloc(sizeof(string_t));
-    new->buf = malloc(sizeof(char) * STRING_DEFAULT_CAPACITY);
-    new->len = 0;
-    new->capacity = STRING_DEFAULT_CAPACITY;
+    if (string_init(new) < 0)
+        return NULL;
     return new;
+}
+
+int string_init(string_t *string) {
+    if (!string)
+        return -1;
+    string->buf = malloc(sizeof(char) * STRING_DEFAULT_CAPACITY);
+    if (!string->buf)
+        return -1;
+    string->len = 0;
+    string->capacity = STRING_DEFAULT_CAPACITY;
+    return 0;
 }
 
 void string_add(string_t *string, char c) {

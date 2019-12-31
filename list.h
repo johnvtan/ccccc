@@ -16,6 +16,7 @@ typedef struct {
 } list_t;
 
 list_t *list_new(void);
+int list_init(list_t *list);
 int list_push(list_t *list, void *data);
 int list_concat(list_t *l1, list_t *l2);
 void *list_peek(list_t *list);

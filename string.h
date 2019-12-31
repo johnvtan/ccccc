@@ -12,6 +12,7 @@ typedef struct {
 
 string_t *file_to_string(char *filename);
 string_t *string_new(void);
+int string_init(string_t *string);
 void string_add(string_t *string, char c);
 void string_append(string_t *string, char *s, int len);
 char *string_get(string_t *string);
