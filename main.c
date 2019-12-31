@@ -15,20 +15,20 @@ int main(int argc, char **argv) {
    
     char *filename = argv[1];
     string_t *input = file_to_string(filename);
-    if (!input) {
+    if (!input || !input->len)
         return -1;
-    }
+
     list_t *tokens = tokenize(input);
+    if (!tokens || !tokens->len)
+        return -1;
 
     program_t *prog = parse(tokens);
-    if (!prog)
+    if (!prog || !prog->fn_defs || !prog->fn_defs->len)
         return -1;
 
     list_t *instrs = gen_pseudo_asm(prog);
-    if (!instrs || instrs->len == 0) {
-        printf("OH NO\n");
+    if (!instrs || !instrs->len)
         return -1;
-    }
 
     print_asm(instrs);
     return 0;

@@ -5,7 +5,8 @@
 #include "list.h"
 
 typedef enum builtin_type {
-    TYPE_UNRECOGNIZED, TYPE_INT,
+    TYPE_UNRECOGNIZED,
+    TYPE_INT,
     TYPE_VOID,
 } builtin_type_t;
 
