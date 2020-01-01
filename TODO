@@ -18,8 +18,13 @@ x add list_concat(list_t *l1, list_t *l2) function that will append l2 to the en
 - UNIT TESTING!!! for containers (list, string) and tokenizing/parsing code.
     - I'd like to be able to spit out useful errors as well bc that would be easier to debug
     - I am very paranoid about seg faulting and I'm sure there are a ton of bugs here
-- Refactor, especially very hacked together asm generation code. 
+x Refactor, especially very hacked together asm generation code. 
     - also python script which calls gcc. find path to compiler in better way
+
+---------STAGE 2
+wow 2ez done
+
+---------STAGE 3
 
 
 ==========Nice to have==========

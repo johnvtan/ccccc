@@ -39,6 +39,30 @@ static expr_t *parse_expr(list_t *tokens) {
         return expr;
     }
 
+    if (next->type == TOK_BANG) {
+        expr->type = UNARY_OP;
+        expr->unary = malloc(sizeof(unary_expr_t));
+        expr->unary->op = UNARY_LOGICAL_NEG;
+        expr->unary->expr = parse_expr(tokens);
+        return expr;
+    }
+
+    if (next->type == TOK_TILDE) {
+        expr->type = UNARY_OP;
+        expr->unary = malloc(sizeof(unary_expr_t));
+        expr->unary->op = UNARY_BITWISE_COMP;
+        expr->unary->expr = parse_expr(tokens);
+        return expr;
+    }
+
+    if (next->type == TOK_MINUS) {
+        expr->type = UNARY_OP;
+        expr->unary = malloc(sizeof(unary_expr_t));
+        expr->unary->op = UNARY_MATH_NEG;
+        expr->unary->expr = parse_expr(tokens);
+        return expr;
+    }
+
     printf("%d\n", next->type);
     UNREACHABLE("Unknown expr type");
 }

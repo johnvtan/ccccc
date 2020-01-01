@@ -4,8 +4,13 @@ static int op_to_num_args(opcode_t op) {
     switch (op) {
         case OP_ADD:
         case OP_MOV:
+        case OP_CMP:
             return 2;
-        case OP_RETQ:
+        case OP_NEG:
+        case OP_NOT:
+        case OP_SETE:
+            return 1;
+        case OP_RET:
         default:
             return 0;
     }
@@ -21,30 +26,82 @@ static output_t *new_instr(opcode_t op) {
     return out;
 }
 
+// TODO how to not put everything into eax
+static list_t *expr_to_instrs(expr_t *expr) {
+    if (!expr)
+        return NULL;
+
+    list_t *ret = list_new();
+    operand_t rax = {.type = OPERAND_REG, .reg = REG_RAX};
+
+    // int literal just does a movq into dst reg
+    if (expr->type == INT_LITERAL) {
+        output_t *mov = new_instr(OP_MOV);
+        mov->instr.src.type = OPERAND_IMM;
+        mov->instr.src.imm = expr->integer;
+        mov->instr.dst = rax;
+        list_push(ret, mov);
+        return ret;
+    }
+
+    if (expr->type == UNARY_OP) {
+        list_t *inner_instrs = expr_to_instrs(expr->unary->expr);
+        if (!inner_instrs)
+            return NULL;
+        list_concat(ret, inner_instrs);
+        unary_op_t op = expr->unary->op;
+        if (op == UNARY_MATH_NEG) {
+            output_t *neg = new_instr(OP_NEG);
+            neg->instr.src = rax;
+            list_push(ret, neg);
+        } else if (op == UNARY_LOGICAL_NEG) {
+            output_t *cmp = new_instr(OP_CMP);
+            cmp->instr.src.type = OPERAND_IMM;
+            cmp->instr.src.imm = 0;
+            cmp->instr.dst = rax;
+            list_push(ret, cmp);
+
+            output_t *mov = new_instr(OP_MOV);
+            mov->instr.src.type = OPERAND_IMM;
+            mov->instr.src.imm = 0;
+            mov->instr.dst = rax;
+            list_push(ret, mov);
+
+            output_t *sete = new_instr(OP_SETE);
+            sete->instr.src.type = OPERAND_REG;
+            sete->instr.src.reg = REG_AL;
+            list_push(ret, sete);
+        } else if (op == UNARY_BITWISE_COMP) {
+            output_t *not = new_instr(OP_NOT);
+            not->instr.src = rax;
+            list_push(ret, not);
+        } else {
+            UNREACHABLE("unhandled unary op type\n");
+            return NULL;
+        }
+        return ret;
+    }
+
+    UNREACHABLE("unhandled expression\n");
+    return NULL;
+}
+
 // TODO does each statement correspond to an instruction?
 static list_t *stmt_to_instrs(stmt_t *stmt) {
     if (!stmt)
         return NULL;
     list_t *ret = list_new();
     if (stmt->type == STMT_RETURN) {
-        output_t *mov = new_instr(OP_MOV);
-
-        // TODO only handle integers
-        if (stmt->ret->expr->type != INT_LITERAL)
+        list_t *expr_instrs = expr_to_instrs(stmt->ret->expr);
+        if (!expr_instrs)
             return NULL;
+        list_concat(ret, expr_instrs);
 
-        mov->instr.src.type = OPERAND_IMM;
-        mov->instr.src.imm = stmt->ret->expr->integer;
-
-        mov->instr.dst.type = OPERAND_REG;
-        mov->instr.dst.reg = REG_RAX;
-        list_push(ret, mov);
-
-        output_t *retq = new_instr(OP_RETQ);
+        output_t *retq = new_instr(OP_RET);
         list_push(ret, retq);
         return ret;
     }
-    UNREACHABLE("WTF\n");
+    UNREACHABLE("WTF NOT A RETURN STATEMENT\n");
     return NULL;
 } 
 
@@ -95,8 +152,9 @@ typedef struct reg_pair {
     char *string;
 } reg_pair_t;
 
-static const reg_pair_t reg_pairs[2] = {
+static const reg_pair_t reg_pairs[] = {
     {.reg = REG_RAX, .string = "%rax"},
+    {.reg = REG_AL, .string = "%al"},
     {0, NULL},
 };
 
@@ -116,9 +174,14 @@ typedef struct op_pair {
     char *string;
 } op_pair_t;
 
-static const op_pair_t op_pairs[3] = {
+static const op_pair_t op_pairs[] = {
     {.op = OP_MOV, .string = "movq"},
-    {.op = OP_RETQ, .string = "retq"},
+    {.op = OP_ADD, .string = "addq"},
+    {.op = OP_RET, .string = "retq"},
+    {.op = OP_CMP, .string = "cmpq"},
+    {.op = OP_SETE, .string = "sete"},
+    {.op = OP_NEG, .string = "negq"},
+    {.op = OP_NOT, .string = "notq"},
     {0, NULL},
 };
 

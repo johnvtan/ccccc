@@ -8,7 +8,11 @@
 typedef enum {
     OP_MOV = 1,
     OP_ADD,
-    OP_RETQ,
+    OP_RET,
+    OP_CMP,
+    OP_SETE,
+    OP_NEG,
+    OP_NOT,
 } opcode_t;
 
 typedef enum {
@@ -28,6 +32,7 @@ typedef enum {
     REG_R13,
     REG_R14,
     REG_R15,
+    REG_AL, // for sete
 } reg_t;
 
 typedef struct {

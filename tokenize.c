@@ -31,6 +31,9 @@ static special_char_pair_t special_chars[] = {
     {'[', TOK_OPEN_BRACKET},
     {']', TOK_CLOSE_BRACKET},
     {';', TOK_SEMICOLON},
+    {'-', TOK_MINUS},
+    {'~', TOK_TILDE},
+    {'!', TOK_BANG},
     {0, 0},
 };
 

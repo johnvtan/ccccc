@@ -21,7 +21,6 @@ typedef enum token_type {
     TOK_CHAR_TYPE,
     TOK_VOID_TYPE,
     TOK_PLUS,
-    TOK_MINUS,
     TOK_MULT,
     TOK_DIV,
     TOK_ASSIGN,
@@ -34,6 +33,11 @@ typedef enum token_type {
     TOK_OPEN_BRACKET,
     TOK_CLOSE_BRACKET,
     TOK_SEMICOLON,
+
+    // unary operators
+    TOK_MINUS,
+    TOK_TILDE,
+    TOK_BANG,
 } token_type_t;
 
 typedef struct token {
