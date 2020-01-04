@@ -11,38 +11,30 @@ typedef enum {
     TYPE_UNRECOGNIZED,
     TYPE_INT,
     TYPE_VOID,
+
 } builtin_type_t;
-
-typedef enum {
-    STMT_RETURN,
-    STMT_ASSIGN,
-} stmt_type_t;
-
-typedef enum {
-    INT_LITERAL,
-    CHAR_LITERAL,
-    UNARY_OP,
-    BIN_OP,
-} expr_type_t;
 
 typedef struct {
     builtin_type_t type;
     string_t name;
 } var_t;
 
-typedef enum {
-    UNARY_MATH_NEG,
-    UNARY_BITWISE_COMP,
-    UNARY_LOGICAL_NEG,
-} unary_op_t;
-
 typedef struct {
-    unary_op_t op;
+    enum {
+        UNARY_MATH_NEG,
+        UNARY_BITWISE_COMP,
+        UNARY_LOGICAL_NEG,
+    } op;
     expr_t *expr;
 } unary_expr_t;
 
 typedef struct expr {
-    expr_type_t type;
+    enum {
+        INT_LITERAL,
+        CHAR_LITERAL,
+        UNARY_OP,
+        BIN_OP,
+    } type;
     union {
         int integer;
         char character;
@@ -56,7 +48,10 @@ typedef struct {
 } return_stmt_t;
 
 typedef struct {
-    stmt_type_t type; 
+    enum {
+        STMT_RETURN,
+        STMT_ASSIGN,
+    } type;
     union {
         return_stmt_t *ret;
         // TODO fill in with other statements

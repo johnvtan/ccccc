@@ -49,12 +49,11 @@ static list_t *expr_to_instrs(expr_t *expr) {
         if (!inner_instrs)
             return NULL;
         list_concat(ret, inner_instrs);
-        unary_op_t op = expr->unary->op;
-        if (op == UNARY_MATH_NEG) {
+        if (expr->unary->op == UNARY_MATH_NEG) {
             output_t *neg = new_instr(OP_NEG);
             neg->instr.src = rax;
             list_push(ret, neg);
-        } else if (op == UNARY_LOGICAL_NEG) {
+        } else if (expr->unary->op == UNARY_LOGICAL_NEG) {
             output_t *cmp = new_instr(OP_CMP);
             cmp->instr.src.type = OPERAND_IMM;
             cmp->instr.src.imm = 0;
@@ -71,7 +70,7 @@ static list_t *expr_to_instrs(expr_t *expr) {
             sete->instr.src.type = OPERAND_REG;
             sete->instr.src.reg = REG_AL;
             list_push(ret, sete);
-        } else if (op == UNARY_BITWISE_COMP) {
+        } else if (expr->unary->op == UNARY_BITWISE_COMP) {
             output_t *not = new_instr(OP_NOT);
             not->instr.src = rax;
             list_push(ret, not);
