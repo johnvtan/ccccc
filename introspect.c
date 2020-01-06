@@ -7,11 +7,14 @@ void print_expr(expr_t *e, int indent) {
     for (int i = 0; i < indent; i++)
         printf("\t");
     switch(e->type) {
-        case INT_LITERAL:
-            printf("Int literal %d\n", e->integer);
+        case BIN_OP:
+            printf("bin op \n");
             break;
-        case CHAR_LITERAL:
-            printf("char literal %c\n", e->character);
+        case UNARY_OP:
+            printf("unary op\n");
+            break;
+        case PRIMARY:
+            printf("primary\n");
             break;
         default:
             printf("UNKNOWN EXPR\n");

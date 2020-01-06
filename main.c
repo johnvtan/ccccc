@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
     if (!prog || !prog->fn_defs || !prog->fn_defs->len)
         return -1;
 
+    printf("PARSING GOOD\n");
     list_t *instrs = gen_pseudo_asm(prog);
     if (!instrs || !instrs->len)
         return -1;

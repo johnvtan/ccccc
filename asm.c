@@ -35,6 +35,7 @@ static list_t *expr_to_instrs(expr_t *expr) {
     operand_t rax = {.type = OPERAND_REG, .reg = REG_RAX};
 
     // int literal just does a movq into dst reg
+    /*
     if (expr->type == INT_LITERAL) {
         output_t *mov = new_instr(OP_MOV);
         mov->instr.src.type = OPERAND_IMM;
@@ -43,6 +44,7 @@ static list_t *expr_to_instrs(expr_t *expr) {
         list_push(ret, mov);
         return ret;
     }
+    */
 
     if (expr->type == UNARY_OP) {
         list_t *inner_instrs = expr_to_instrs(expr->unary->expr);

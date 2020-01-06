@@ -38,16 +38,30 @@ typedef struct {
     expr_t *rhs;
 } bin_expr_t;
 
-typedef struct expr {
-    enum {
-        INT_LITERAL,
-        CHAR_LITERAL,
-        UNARY_OP,
-        BIN_OP,
+typedef struct {
+    enum primary_type {
+        PRIMARY_INT,
+        PRIMARY_CHAR,
+        PRIMARY_EXPR,
     } type;
     union {
         int integer;
         char character;
+
+        // TODO is this necessary? seems like I could parse these as just another expr_t instead of
+        // nesting it like this
+        expr_t *expr;
+    };
+} primary_t;
+
+typedef struct expr {
+    enum {
+        PRIMARY,
+        UNARY_OP,
+        BIN_OP,
+    } type;
+    union {
+        primary_t *primary;
         unary_expr_t *unary;
         bin_expr_t *bin;
     };
