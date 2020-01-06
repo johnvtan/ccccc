@@ -25,7 +25,11 @@ x Refactor, especially very hacked together asm generation code.
 wow 2ez done
 
 ---------STAGE 3
-
+- Figure out a good AST structure including binary operations.
+- Figure out parsing strategy for binary operations - I don't like the whole factor/term thing, even
+    though that probably works. Sounds like it would be confusing when I try to add assignment or other
+    binops. Maybe I can define a precedence level somehow that would inform the parsing strategy.
+    - Bake the precedence into the parsing strategy!
 
 ==========Nice to have==========
 - Less questionable organization of code

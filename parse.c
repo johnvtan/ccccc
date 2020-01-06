@@ -23,48 +23,101 @@ static builtin_type_t token_to_builtin_type(token_type_t t) {
     }
 }
 
-// TODO only handling single numbers/characters right now
-static expr_t *parse_expr(list_t *tokens) {
+static bin_expr_t *new_bin_expr(enum bin_op op, expr_t *lhs, expr_t *rhs) {
+    if (!rhs || !lhs)
+        return NULL;
+
+    bin_expr_t *ret = malloc(sizeof(bin_expr_t));
+    if (!ret)
+        return NULL;
+    ret->op = op;
+    ret->lhs = lhs;
+    ret->rhs = rhs;
+    return ret;
+}
+
+static unary_expr_t *new_unary_expr(enum unary_op op, expr_t *inner) {
+    if (!inner)
+        return NULL;
+
+    unary_expr_t *unary = malloc(sizeof(unary_expr_t));
+    if (!unary)
+        return NULL;
+    unary->op = op;
+    unary->expr = inner;
+    return unary;
+}
+
+static expr_t *parse_primary(list_t *tokens) {
     expr_t *expr = malloc(sizeof(expr_t));
-    token_t *next = list_pop(tokens);
-    if (next->type == TOK_INT_LIT) {
+    token_t *curr = list_pop(tokens);
+    if (curr->type == TOK_INT_LIT) {
         expr->type = INT_LITERAL;
-        expr->integer = next->int_literal;
+        expr->integer = curr->int_literal;
         return expr;
     }
 
-    if (next->type == TOK_CHAR_LIT) {
+    if (curr->type == TOK_CHAR_LIT) {
         expr->type = CHAR_LITERAL;
-        expr->character = next->char_literal;
+        expr->character = curr->char_literal;
         return expr;
     }
 
-    if (next->type == TOK_BANG) {
+    UNREACHABLE("Error parsing expected primary expression\n");
+    return NULL;
+}
+
+// TODO refactor
+static expr_t *parse_unary(list_t *tokens) {
+    if (!tokens || !tokens->len)
+        return NULL;
+
+    token_t *curr = list_peek(tokens);
+    if (curr->type == TOK_BANG) {
+        list_pop(tokens);
+        expr_t *expr = malloc(sizeof(expr_t));
         expr->type = UNARY_OP;
-        expr->unary = malloc(sizeof(unary_expr_t));
-        expr->unary->op = UNARY_LOGICAL_NEG;
-        expr->unary->expr = parse_expr(tokens);
+        expr->unary = new_unary_expr(UNARY_LOGICAL_NEG, parse_unary(tokens));
+        if (!expr->unary)
+            return NULL;
         return expr;
     }
 
-    if (next->type == TOK_TILDE) {
+    if (curr->type == TOK_TILDE) {
+        list_pop(tokens);
+        expr_t *expr = malloc(sizeof(expr_t));
         expr->type = UNARY_OP;
-        expr->unary = malloc(sizeof(unary_expr_t));
-        expr->unary->op = UNARY_BITWISE_COMP;
-        expr->unary->expr = parse_expr(tokens);
+        expr->unary  = new_unary_expr(UNARY_BITWISE_COMP, parse_unary(tokens));
+        if (!expr->unary)
+            return NULL;
         return expr;
     }
 
-    if (next->type == TOK_MINUS) {
+    if (curr->type == TOK_MINUS) {
+        list_pop(tokens);
+        expr_t *expr = malloc(sizeof(expr_t));
         expr->type = UNARY_OP;
-        expr->unary = malloc(sizeof(unary_expr_t));
-        expr->unary->op = UNARY_MATH_NEG;
-        expr->unary->expr = parse_expr(tokens);
+        expr->unary = new_unary_expr(UNARY_MATH_NEG, parse_unary(tokens));
+        if (!expr->unary)
+            return NULL;
         return expr;
     }
 
-    printf("%d\n", next->type);
-    UNREACHABLE("Unknown expr type");
+    return parse_primary(tokens);
+}
+
+static expr_t *parse_mul_div(list_t *tokens) {
+    expr_t *lhs = parse_unary(tokens);
+    return NULL;
+}
+
+static expr_t *parse_add_sub(list_t *tokens) {
+    expr_t *lhs = parse_mul_div(tokens);
+    return NULL;
+}
+
+static expr_t *parse_expr(list_t *tokens) {
+    return parse_unary(tokens);
 }
 
 static return_stmt_t *parse_return_stmt(list_t *tokens) {

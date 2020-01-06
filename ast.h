@@ -11,7 +11,6 @@ typedef enum {
     TYPE_UNRECOGNIZED,
     TYPE_INT,
     TYPE_VOID,
-
 } builtin_type_t;
 
 typedef struct {
@@ -20,13 +19,24 @@ typedef struct {
 } var_t;
 
 typedef struct {
-    enum {
+    enum unary_op {
         UNARY_MATH_NEG,
         UNARY_BITWISE_COMP,
         UNARY_LOGICAL_NEG,
     } op;
     expr_t *expr;
 } unary_expr_t;
+
+typedef struct {
+    enum bin_op {
+        BIN_ADD,
+        BIN_SUB,
+        BIN_MUL,
+        BIN_DIV,
+    } op;
+    expr_t *lhs;
+    expr_t *rhs;
+} bin_expr_t;
 
 typedef struct expr {
     enum {
@@ -39,6 +49,7 @@ typedef struct expr {
         int integer;
         char character;
         unary_expr_t *unary;
+        bin_expr_t *bin;
     };
 } expr_t;
 
