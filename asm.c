@@ -307,7 +307,7 @@ static const op_pair_t op_pairs[] = {
     {.op = OP_ADD, .string = "addq"},
     {.op = OP_SUB, .string = "subq"},
     {.op = OP_MUL, .string = "imulq"},
-    {.op = OP_DIV, .string = "divq"},
+    {.op = OP_DIV, .string = "idivq"},
     {.op = OP_PUSH, .string = "pushq"},
     {.op = OP_POP, .string = "popq"},
     {.op = OP_XCHG, .string = "xchg"},
