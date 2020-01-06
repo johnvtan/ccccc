@@ -1,5 +1,7 @@
 #include "compile.h"
 
+static list_t *expr_to_instrs(expr_t *expr);
+
 static int op_to_num_args(opcode_t op) {
     switch (op) {
         case OP_ADD:
@@ -26,62 +28,92 @@ static output_t *new_instr(opcode_t op) {
     return out;
 }
 
+static list_t *primary_to_instrs(primary_t *primary) {
+    if (!primary)
+        return NULL;
+
+    if (primary->type == PRIMARY_INT) {
+        list_t *ret = list_new();
+        output_t *mov = new_instr(OP_MOV);
+        mov->instr.src.type = OPERAND_IMM;
+        mov->instr.src.imm = primary->integer;
+        mov->instr.dst.type = OPERAND_REG;
+        mov->instr.dst.reg = REG_RAX;
+        list_push(ret, mov);
+        return ret;
+    }
+
+    if (primary->type == PRIMARY_EXPR) {
+        return expr_to_instrs(primary->expr);
+    }
+
+    UNREACHABLE("Unexpected primary expr\n");
+    return NULL;
+}
+
+static list_t *unary_to_instrs(unary_expr_t *unary) {
+    list_t *ret = expr_to_instrs(unary->expr);
+    if (!ret)
+        return NULL;
+
+    if (unary->op == UNARY_MATH_NEG) {
+        output_t *neg = new_instr(OP_NEG);
+        neg->instr.src.type = OPERAND_REG;
+        neg->instr.src.reg = REG_RAX;
+        list_push(ret, neg);
+        return ret;
+    } else if (unary->op == UNARY_LOGICAL_NEG) {
+        output_t *cmp = new_instr(OP_CMP);
+        cmp->instr.src.type = OPERAND_IMM;
+        cmp->instr.src.imm = 0;
+        cmp->instr.dst.type = OPERAND_REG;
+        cmp->instr.dst.reg = REG_RAX;
+        list_push(ret, cmp);
+
+        output_t *mov = new_instr(OP_MOV);
+        mov->instr.src.type = OPERAND_IMM;
+        mov->instr.src.imm = 0;
+        mov->instr.dst.type = OPERAND_REG;
+        mov->instr.dst.reg = REG_RAX;
+        list_push(ret, mov);
+
+        output_t *sete = new_instr(OP_SETE);
+        sete->instr.src.type = OPERAND_REG;
+        sete->instr.src.reg = REG_AL;
+        list_push(ret, sete);
+        return ret;
+    } else if (unary->op == UNARY_BITWISE_COMP) {
+        output_t *not = new_instr(OP_NOT);
+        not->instr.src.type = OPERAND_REG;
+        not->instr.src.reg = REG_RAX;
+        list_push(ret, not);
+        return ret;
+    }
+
+    UNREACHABLE("unexpected unary expr\n");
+    return NULL;
+}
+
+static list_t *binop_to_instrs(bin_expr_t *bin) {
+    return NULL;
+}
+
 
 // TODO how to not put everything into eax
 static list_t *expr_to_instrs(expr_t *expr) {
     if (!expr)
         return NULL;
 
-    list_t *ret = list_new();
-    operand_t rax = {.type = OPERAND_REG, .reg = REG_RAX};
-
-    // int literal just does a movq into dst reg
-    /*
-    if (expr->type == INT_LITERAL) {
-        output_t *mov = new_instr(OP_MOV);
-        mov->instr.src.type = OPERAND_IMM;
-        mov->instr.src.imm = expr->integer;
-        mov->instr.dst = rax;
-        list_push(ret, mov);
-        return ret;
+    if (expr->type == PRIMARY) {
+        return primary_to_instrs(expr->primary);
     }
-    */
 
     if (expr->type == UNARY_OP) {
-        list_t *inner_instrs = expr_to_instrs(expr->unary->expr);
-        if (!inner_instrs)
-            return NULL;
-        list_concat(ret, inner_instrs);
-        if (expr->unary->op == UNARY_MATH_NEG) {
-            output_t *neg = new_instr(OP_NEG);
-            neg->instr.src = rax;
-            list_push(ret, neg);
-        } else if (expr->unary->op == UNARY_LOGICAL_NEG) {
-            output_t *cmp = new_instr(OP_CMP);
-            cmp->instr.src.type = OPERAND_IMM;
-            cmp->instr.src.imm = 0;
-            cmp->instr.dst = rax;
-            list_push(ret, cmp);
+        return unary_to_instrs(expr->unary);
+    }
 
-            output_t *mov = new_instr(OP_MOV);
-            mov->instr.src.type = OPERAND_IMM;
-            mov->instr.src.imm = 0;
-            mov->instr.dst = rax;
-            list_push(ret, mov);
-
-            output_t *sete = new_instr(OP_SETE);
-            sete->instr.src.type = OPERAND_REG;
-            sete->instr.src.reg = REG_AL;
-            list_push(ret, sete);
-        } else if (expr->unary->op == UNARY_BITWISE_COMP) {
-            output_t *not = new_instr(OP_NOT);
-            not->instr.src = rax;
-            list_push(ret, not);
-        } else {
-            UNREACHABLE("unhandled unary op type\n");
-            return NULL;
-        }
-        return ret;
+    if (expr->type == BIN_OP) {
+        return binop_to_instrs(expr->bin);
     }
 
     UNREACHABLE("unhandled expression\n");
@@ -156,6 +188,7 @@ typedef struct reg_pair {
 
 static const reg_pair_t reg_pairs[] = {
     {.reg = REG_RAX, .string = "%rax"},
+    {.reg = REG_RCX, .string = "%rcx"},
     {.reg = REG_AL, .string = "%al"},
     {0, NULL},
 };
