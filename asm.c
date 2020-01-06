@@ -7,12 +7,19 @@ static int op_to_num_args(opcode_t op) {
         case OP_ADD:
         case OP_MOV:
         case OP_CMP:
+        case OP_SUB:
+        case OP_MUL:
+        case OP_XCHG:
             return 2;
         case OP_NEG:
         case OP_NOT:
         case OP_SETE:
+        case OP_PUSH:
+        case OP_POP:
+        case OP_DIV:
             return 1;
         case OP_RET:
+        case OP_CQO:
         default:
             return 0;
     }
@@ -62,7 +69,9 @@ static list_t *unary_to_instrs(unary_expr_t *unary) {
         neg->instr.src.reg = REG_RAX;
         list_push(ret, neg);
         return ret;
-    } else if (unary->op == UNARY_LOGICAL_NEG) {
+    } 
+
+    if (unary->op == UNARY_LOGICAL_NEG) {
         output_t *cmp = new_instr(OP_CMP);
         cmp->instr.src.type = OPERAND_IMM;
         cmp->instr.src.imm = 0;
@@ -82,7 +91,9 @@ static list_t *unary_to_instrs(unary_expr_t *unary) {
         sete->instr.src.reg = REG_AL;
         list_push(ret, sete);
         return ret;
-    } else if (unary->op == UNARY_BITWISE_COMP) {
+    }
+
+    if (unary->op == UNARY_BITWISE_COMP) {
         output_t *not = new_instr(OP_NOT);
         not->instr.src.type = OPERAND_REG;
         not->instr.src.reg = REG_RAX;
@@ -95,6 +106,83 @@ static list_t *unary_to_instrs(unary_expr_t *unary) {
 }
 
 static list_t *binop_to_instrs(bin_expr_t *bin) {
+    if (!bin)
+        return NULL;
+    list_t *ret = expr_to_instrs(bin->lhs);
+    if (!ret)
+        return NULL;
+
+    output_t *push = new_instr(OP_PUSH);
+    push->instr.src.type = OPERAND_REG;
+    push->instr.src.reg = REG_RAX;
+    list_push(ret, push);
+
+    list_concat(ret, expr_to_instrs(bin->rhs));
+    output_t *pop = new_instr(OP_POP);
+    pop->instr.src.type = OPERAND_REG;
+    pop->instr.src.reg = REG_RCX;
+    list_push(ret, pop);
+
+    if (bin->op == BIN_ADD) {
+        output_t *add = new_instr(OP_ADD);
+        add->instr.src.type = OPERAND_REG;
+        add->instr.src.reg = REG_RCX;
+        add->instr.dst.type = OPERAND_REG;
+        add->instr.dst.reg = REG_RAX;
+        list_push(ret, add);
+        return ret;
+    }
+
+    if (bin->op == BIN_SUB) {
+        // sub src, dst computes dst - src
+        // so we want to compute e1 - e2, and e1 is in rcx
+        // so we'll do rcx - rax, then move rcx into rax
+        output_t *sub = new_instr(OP_SUB);
+        sub->instr.src.type = OPERAND_REG;
+        sub->instr.src.reg = REG_RAX;
+        sub->instr.dst.type = OPERAND_REG;
+        sub->instr.dst.reg = REG_RCX;
+        list_push(ret, sub);
+        
+        output_t *mov = new_instr(OP_MOV);
+        mov->instr.src.type = OPERAND_REG;
+        mov->instr.src.reg = REG_RCX;
+        mov->instr.dst.type = OPERAND_REG;
+        mov->instr.dst.reg = REG_RAX;
+        list_push(ret, mov);
+
+        return ret;
+    }
+
+    if (bin->op == BIN_MUL) {
+        output_t *mul = new_instr(OP_MUL);
+        mul->instr.src.type = OPERAND_REG;
+        mul->instr.src.reg = REG_RCX;
+        mul->instr.dst.type = OPERAND_REG;
+        mul->instr.dst.reg = REG_RAX;
+        list_push(ret, mul);
+        return ret;
+    }
+
+    if (bin->op == BIN_DIV) {
+        output_t *xchg = new_instr(OP_XCHG);
+        xchg->instr.src.type = OPERAND_REG;
+        xchg->instr.src.reg = REG_RAX;
+        xchg->instr.dst.type = OPERAND_REG;
+        xchg->instr.dst.reg = REG_RCX;
+        list_push(ret, xchg);
+
+        output_t *cqo = new_instr(OP_CQO);
+        list_push(ret, cqo);
+
+        output_t *div = new_instr(OP_DIV);
+        div->instr.src.type = OPERAND_REG;
+        div->instr.src.reg = REG_RCX;
+        list_push(ret, div);
+        return ret;
+    } 
+
+    UNREACHABLE("Unknown binary op\n");
     return NULL;
 }
 
@@ -211,12 +299,19 @@ typedef struct op_pair {
 
 static const op_pair_t op_pairs[] = {
     {.op = OP_MOV, .string = "movq"},
-    {.op = OP_ADD, .string = "addq"},
     {.op = OP_RET, .string = "retq"},
     {.op = OP_CMP, .string = "cmpq"},
     {.op = OP_SETE, .string = "sete"},
     {.op = OP_NEG, .string = "negq"},
     {.op = OP_NOT, .string = "notq"},
+    {.op = OP_ADD, .string = "addq"},
+    {.op = OP_SUB, .string = "subq"},
+    {.op = OP_MUL, .string = "imulq"},
+    {.op = OP_DIV, .string = "divq"},
+    {.op = OP_PUSH, .string = "pushq"},
+    {.op = OP_POP, .string = "popq"},
+    {.op = OP_XCHG, .string = "xchg"},
+    {.op = OP_CQO, .string = "cqo"},
     {0, NULL},
 };
 

@@ -13,6 +13,13 @@ typedef enum {
     OP_SETE,
     OP_NEG,
     OP_NOT,
+    OP_PUSH,
+    OP_POP,
+    OP_SUB,
+    OP_MUL,
+    OP_DIV,
+    OP_XCHG,
+    OP_CQO,
 } opcode_t;
 
 typedef enum {
