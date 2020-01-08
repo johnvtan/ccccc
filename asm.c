@@ -213,26 +213,77 @@ static list_t *binop_to_instrs(bin_expr_t *bin) {
         return ret;
     } 
 
-    /*
     if (bin->op == BIN_EQ) {
-        output_t *cmp = new_instr(OP_CMP);
-        cmp->instr.src.type = OPERAND_REG;
-        cmp->instr.src.reg = REG_RAX;
-
-        cmp->instr.src.type = OPERAND_REG;
-        cmp->instr.src.reg = REG_RAX;
-        cmp->instr.dst.type = OPERAND_REG;
-        cmp->instr.dst.reg = REG_RCX;
+        output_t *cmp = instr_r2r(OP_CMP, REG_RAX, REG_RCX);
         list_push(ret, cmp);
 
-        output_t *mov = new_instr(OP_MOV);
-        mov->instr.src.type = OPERAND_IMM;
-        mov->instr.src.imm = 0;
-        mov->instr.dst.type = OPERAND_RAX;
-        mov->instr.dst.reg = REG_RAX;
+        output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
         list_push(ret, mov);
+
+        output_t *sete = instr_r(OP_SETE, REG_AL);
+        list_push(ret, sete);
+        return ret;
     }
-    */
+
+    if (bin->op == BIN_NE) {
+        output_t *cmp = instr_r2r(OP_CMP, REG_RAX, REG_RCX);
+        list_push(ret, cmp);
+
+        output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
+        list_push(ret, mov);
+
+        output_t *setne = instr_r(OP_SETNE, REG_AL);
+        list_push(ret, setne);
+        return ret;
+    }
+
+    if (bin->op == BIN_LT) {
+        output_t *cmp = instr_r2r(OP_CMP, REG_RAX, REG_RCX);
+        list_push(ret, cmp);
+
+        output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
+        list_push(ret, mov);
+
+        output_t *setb = instr_r(OP_SETB, REG_AL);
+        list_push(ret, setb);
+        return ret;
+    }
+
+    if (bin->op == BIN_LTE) {
+        output_t *cmp = instr_r2r(OP_CMP, REG_RAX, REG_RCX);
+        list_push(ret, cmp);
+
+        output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
+        list_push(ret, mov);
+
+        output_t *setbe = instr_r(OP_SETBE, REG_AL);
+        list_push(ret, setbe);
+        return ret;
+    }
+
+    if (bin->op == BIN_GT) {
+        output_t *cmp = instr_r2r(OP_CMP, REG_RAX, REG_RCX);
+        list_push(ret, cmp);
+
+        output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
+        list_push(ret, mov);
+
+        output_t *seta = instr_r(OP_SETA, REG_AL);
+        list_push(ret, seta);
+        return ret;
+    }
+
+    if (bin->op == BIN_GTE) {
+        output_t *cmp = instr_r2r(OP_CMP, REG_RAX, REG_RCX);
+        list_push(ret, cmp);
+
+        output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
+        list_push(ret, mov);
+
+        output_t *setae = instr_r(OP_SETAE, REG_AL);
+        list_push(ret, setae);
+        return ret;
+    }
 
     UNREACHABLE("Unknown binary op\n");
     return NULL;
@@ -364,6 +415,12 @@ static const op_pair_t op_pairs[] = {
     {.op = OP_POP, .string = "popq"},
     {.op = OP_XCHG, .string = "xchg"},
     {.op = OP_CQO, .string = "cqo"},
+    {.op = OP_SETNE, .string = "setne"},
+    {.op = OP_SETB, .string = "setb"},
+    {.op = OP_SETBE, .string = "setbe"},
+    {.op = OP_SETA, .string = "seta"},
+    {.op = OP_SETAE, .string = "setae"},
+
     {0, NULL},
 };
 

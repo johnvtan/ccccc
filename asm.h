@@ -20,6 +20,11 @@ typedef enum {
     OP_DIV,
     OP_XCHG,
     OP_CQO,
+    OP_SETNE,
+    OP_SETB,
+    OP_SETBE,
+    OP_SETA,
+    OP_SETAE,
 } opcode_t;
 
 typedef enum {
