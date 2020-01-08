@@ -1,5 +1,4 @@
 #include "compile.h"
-
 static list_t *expr_to_instrs(expr_t *expr);
 
 static int op_to_num_args(opcode_t op) {
@@ -25,13 +24,91 @@ static int op_to_num_args(opcode_t op) {
     }
 }
 
-static output_t *new_instr(opcode_t op) {
+static output_t *instr_r2r(opcode_t op, reg_t src, reg_t dst) {
     output_t *out = malloc(sizeof(output_t));
     if (!out)
         return NULL;
+
+    out->instr.num_args = op_to_num_args(op);
+    if (out->instr.num_args != 2)
+        return NULL;
+
     out->type = OUTPUT_INSTR;
     out->instr.op = op;
+    out->instr.src.type = OPERAND_REG;
+    out->instr.src.reg = src;
+
+    out->instr.dst.type = OPERAND_REG;
+    out->instr.dst.reg = dst;
+    return out;
+}
+
+static output_t *instr_i2r(opcode_t op, imm_t src, reg_t dst) {
+    output_t *out = malloc(sizeof(output_t));
+    if (!out)
+        return NULL;
+
     out->instr.num_args = op_to_num_args(op);
+    if (out->instr.num_args != 2)
+        return NULL;
+
+    out->type = OUTPUT_INSTR;
+    out->instr.op = op;
+
+    out->instr.src.type = OPERAND_IMM;
+    out->instr.src.imm = src;
+
+    out->instr.dst.type = OPERAND_REG;
+    out->instr.dst.reg = dst;
+    return out;
+}
+
+static output_t *instr_r(opcode_t op, reg_t src) {
+    output_t *out = malloc(sizeof(output_t));
+    if (!out)
+        return NULL;
+
+    out->instr.num_args = op_to_num_args(op);
+    if (out->instr.num_args != 1)
+        return NULL;
+
+    out->type = OUTPUT_INSTR;
+    out->instr.op = op;
+
+    out->instr.src.type = OPERAND_REG;
+    out->instr.src.reg = src;
+    return out;
+}
+
+static output_t *instr_i(opcode_t op, imm_t src) {
+    output_t *out = malloc(sizeof(output_t));
+    if (!out)
+        return NULL;
+
+    out->instr.num_args = op_to_num_args(op);
+    if (out->instr.num_args != 1)
+        return NULL;
+
+    out->type = OUTPUT_INSTR;
+    out->instr.op = op;
+
+    out->instr.src.type = OPERAND_IMM;
+    out->instr.src.imm = src;
+    return out;
+}
+
+static output_t *instr(opcode_t op) {
+    output_t *out = malloc(sizeof(output_t));
+    if (!out)
+        return NULL;
+
+    out->instr.num_args = op_to_num_args(op);
+    if (out->instr.num_args != 0)
+        return NULL;
+
+    out->type = OUTPUT_INSTR;
+    out->instr.op = op;
+
     return out;
 }
 
@@ -41,12 +118,7 @@ static list_t *primary_to_instrs(primary_t *primary) {
 
     if (primary->type == PRIMARY_INT) {
         list_t *ret = list_new();
-        output_t *mov = new_instr(OP_MOV);
-        mov->instr.src.type = OPERAND_IMM;
-        mov->instr.src.imm = primary->integer;
-        mov->instr.dst.type = OPERAND_REG;
-        mov->instr.dst.reg = REG_RAX;
-        list_push(ret, mov);
+        list_push(ret, instr_i2r(OP_MOV, primary->integer, REG_RAX));
         return ret;
     }
 
@@ -64,39 +136,24 @@ static list_t *unary_to_instrs(unary_expr_t *unary) {
         return NULL;
 
     if (unary->op == UNARY_MATH_NEG) {
-        output_t *neg = new_instr(OP_NEG);
-        neg->instr.src.type = OPERAND_REG;
-        neg->instr.src.reg = REG_RAX;
-        list_push(ret, neg);
+        list_push(ret, instr_r(OP_NEG, REG_RAX));
         return ret;
     } 
 
     if (unary->op == UNARY_LOGICAL_NEG) {
-        output_t *cmp = new_instr(OP_CMP);
-        cmp->instr.src.type = OPERAND_IMM;
-        cmp->instr.src.imm = 0;
-        cmp->instr.dst.type = OPERAND_REG;
-        cmp->instr.dst.reg = REG_RAX;
+        output_t *cmp = instr_i2r(OP_CMP, 0, REG_RAX);
         list_push(ret, cmp);
 
-        output_t *mov = new_instr(OP_MOV);
-        mov->instr.src.type = OPERAND_IMM;
-        mov->instr.src.imm = 0;
-        mov->instr.dst.type = OPERAND_REG;
-        mov->instr.dst.reg = REG_RAX;
+        output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
         list_push(ret, mov);
 
-        output_t *sete = new_instr(OP_SETE);
-        sete->instr.src.type = OPERAND_REG;
-        sete->instr.src.reg = REG_AL;
+        output_t *sete = instr_r(OP_SETE, REG_AL);
         list_push(ret, sete);
         return ret;
     }
 
     if (unary->op == UNARY_BITWISE_COMP) {
-        output_t *not = new_instr(OP_NOT);
-        not->instr.src.type = OPERAND_REG;
-        not->instr.src.reg = REG_RAX;
+        output_t *not = instr_r(OP_NOT, REG_RAX);
         list_push(ret, not);
         return ret;
     }
@@ -112,23 +169,15 @@ static list_t *binop_to_instrs(bin_expr_t *bin) {
     if (!ret)
         return NULL;
 
-    output_t *push = new_instr(OP_PUSH);
-    push->instr.src.type = OPERAND_REG;
-    push->instr.src.reg = REG_RAX;
+    output_t *push = instr_r(OP_PUSH, REG_RAX);
     list_push(ret, push);
 
     list_concat(ret, expr_to_instrs(bin->rhs));
-    output_t *pop = new_instr(OP_POP);
-    pop->instr.src.type = OPERAND_REG;
-    pop->instr.src.reg = REG_RCX;
+    output_t *pop = instr_r(OP_POP, REG_RCX);
     list_push(ret, pop);
 
     if (bin->op == BIN_ADD) {
-        output_t *add = new_instr(OP_ADD);
-        add->instr.src.type = OPERAND_REG;
-        add->instr.src.reg = REG_RCX;
-        add->instr.dst.type = OPERAND_REG;
-        add->instr.dst.reg = REG_RAX;
+        output_t *add = instr_r2r(OP_ADD, REG_RCX, REG_RAX);
         list_push(ret, add);
         return ret;
     }
@@ -137,50 +186,53 @@ static list_t *binop_to_instrs(bin_expr_t *bin) {
         // sub src, dst computes dst - src
         // so we want to compute e1 - e2, and e1 is in rcx
         // so we'll do rcx - rax, then move rcx into rax
-        output_t *sub = new_instr(OP_SUB);
-        sub->instr.src.type = OPERAND_REG;
-        sub->instr.src.reg = REG_RAX;
-        sub->instr.dst.type = OPERAND_REG;
-        sub->instr.dst.reg = REG_RCX;
+        output_t *sub = instr_r2r(OP_SUB, REG_RAX, REG_RCX);
         list_push(ret, sub);
         
-        output_t *mov = new_instr(OP_MOV);
-        mov->instr.src.type = OPERAND_REG;
-        mov->instr.src.reg = REG_RCX;
-        mov->instr.dst.type = OPERAND_REG;
-        mov->instr.dst.reg = REG_RAX;
+        output_t *mov = instr_r2r(OP_MOV, REG_RCX, REG_RAX);
         list_push(ret, mov);
 
         return ret;
     }
 
     if (bin->op == BIN_MUL) {
-        output_t *mul = new_instr(OP_MUL);
-        mul->instr.src.type = OPERAND_REG;
-        mul->instr.src.reg = REG_RCX;
-        mul->instr.dst.type = OPERAND_REG;
-        mul->instr.dst.reg = REG_RAX;
+        output_t *mul = instr_r2r(OP_MUL, REG_RCX, REG_RAX);
         list_push(ret, mul);
         return ret;
     }
 
     if (bin->op == BIN_DIV) {
-        output_t *xchg = new_instr(OP_XCHG);
-        xchg->instr.src.type = OPERAND_REG;
-        xchg->instr.src.reg = REG_RAX;
-        xchg->instr.dst.type = OPERAND_REG;
-        xchg->instr.dst.reg = REG_RCX;
+        output_t *xchg = instr_r2r(OP_XCHG, REG_RAX, REG_RCX);
         list_push(ret, xchg);
 
-        output_t *cqo = new_instr(OP_CQO);
+        output_t *cqo = instr(OP_CQO);
         list_push(ret, cqo);
 
-        output_t *div = new_instr(OP_DIV);
-        div->instr.src.type = OPERAND_REG;
-        div->instr.src.reg = REG_RCX;
+        output_t *div = instr_r(OP_DIV, REG_RCX);
         list_push(ret, div);
         return ret;
     } 
+
+    /*
+    if (bin->op == BIN_EQ) {
+        output_t *cmp = new_instr(OP_CMP);
+        cmp->instr.src.type = OPERAND_REG;
+        cmp->instr.src.reg = REG_RAX;
+
+        cmp->instr.src.type = OPERAND_REG;
+        cmp->instr.src.reg = REG_RAX;
+        cmp->instr.dst.type = OPERAND_REG;
+        cmp->instr.dst.reg = REG_RCX;
+        list_push(ret, cmp);
+
+        output_t *mov = new_instr(OP_MOV);
+        mov->instr.src.type = OPERAND_IMM;
+        mov->instr.src.imm = 0;
+        mov->instr.dst.type = OPERAND_RAX;
+        mov->instr.dst.reg = REG_RAX;
+        list_push(ret, mov);
+    }
+    */
 
     UNREACHABLE("Unknown binary op\n");
     return NULL;
@@ -219,7 +271,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt) {
             return NULL;
         list_concat(ret, expr_instrs);
 
-        output_t *retq = new_instr(OP_RET);
+        output_t *retq = instr(OP_RET);
         list_push(ret, retq);
         return ret;
     }

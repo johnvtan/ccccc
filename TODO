@@ -33,6 +33,7 @@ x Figure out parsing strategy for binary operations - I don't like the whole fac
 
 ---------STAGE 4
 - I wonder if I can generalize all the parsing code...
+- Refactor asm generation code. Simplify construction of instructions.
 
 ==========Nice to have==========
 - Less questionable organization of code
