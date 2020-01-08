@@ -33,6 +33,14 @@ typedef struct {
         BIN_SUB,
         BIN_MUL,
         BIN_DIV,
+        BIN_LT,
+        BIN_GT,
+        BIN_LTE,
+        BIN_GTE,
+        BIN_EQ,
+        BIN_NE,
+        BIN_AND,
+        BIN_OR
     } op;
     expr_t *lhs;
     expr_t *rhs;

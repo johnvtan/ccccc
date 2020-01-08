@@ -151,8 +151,91 @@ static expr_t *parse_add_sub(list_t *tokens) {
     return ret;
 }
 
+static expr_t *parse_relational(list_t *tokens) {
+    expr_t *ret = parse_add_sub(tokens);
+    if (!ret)
+        return NULL;
+
+    token_t *curr;
+    while ((curr = list_peek(tokens)) && curr) {
+        if (curr->type == TOK_GT) {
+            list_pop(tokens);
+            ret = new_bin_expr(BIN_GT, ret, parse_add_sub(tokens));
+        } else if (curr->type == TOK_LT) {
+            list_pop(tokens);
+            ret = new_bin_expr(BIN_LT, ret, parse_add_sub(tokens));
+        } else if (curr->type == TOK_GTE) {
+            list_pop(tokens);
+            ret = new_bin_expr(BIN_GTE, ret, parse_add_sub(tokens));
+        } else if (curr->type == TOK_LTE) {
+            list_pop(tokens);
+            ret = new_bin_expr(BIN_LTE, ret, parse_add_sub(tokens));
+        } else {
+            break;
+        }
+    }
+    return ret;
+}
+
+static expr_t *parse_equality(list_t *tokens) {
+    expr_t *ret = parse_relational(tokens);
+
+    if (!ret)
+        return NULL;
+
+    token_t *curr;
+    while ((curr = list_peek(tokens)) && curr) {
+        if (curr->type == TOK_NE) {
+            list_pop(tokens);
+            ret = new_bin_expr(BIN_NE, ret, parse_relational(tokens));
+        } else if (curr->type == TOK_EQ) {
+            list_pop(tokens);
+            ret = new_bin_expr(BIN_EQ, ret, parse_relational(tokens));
+        } else {
+            break;
+        }
+    }
+    return ret;
+}
+
+static expr_t *parse_logical_and(list_t *tokens) {
+    expr_t *ret = parse_equality(tokens);
+
+    if (!ret)
+        return NULL;
+
+    token_t *curr;
+    while ((curr = list_peek(tokens)) && curr) {
+        if (curr->type == TOK_AND) {
+            list_pop(tokens);
+            ret = new_bin_expr(BIN_AND, ret, parse_equality(tokens));
+        } else {
+            break;
+        }
+    }
+    return ret;
+}
+
+static expr_t *parse_logical_or(list_t *tokens) {
+    expr_t *ret = parse_logical_and(tokens);
+
+    if (!ret)
+        return NULL;
+
+    token_t *curr;
+    while ((curr = list_peek(tokens)) && curr) {
+        if (curr->type == TOK_OR) {
+            list_pop(tokens);
+            ret = new_bin_expr(BIN_OR, ret, parse_logical_and(tokens));
+        } else {
+            break;
+        }
+    }
+    return ret;
+}
+
 static expr_t *parse_expr(list_t *tokens) {
-    return parse_add_sub(tokens);
+    return parse_logical_or(tokens);
 }
 
 static return_stmt_t *parse_return_stmt(list_t *tokens) {

@@ -15,6 +15,12 @@ static keyword_pair_t keywords[] = {
     {"int", TOK_INT_TYPE},
     {"char", TOK_CHAR_TYPE},
     {"void", TOK_VOID_TYPE},
+    {"&&", TOK_AND},
+    {"||", TOK_OR},
+    {"==", TOK_EQ},
+    {"!=", TOK_NE},
+    {"<=", TOK_LTE},
+    {">=", TOK_GTE},
     {NULL, 0},
 };
 
@@ -34,6 +40,8 @@ static special_char_pair_t special_chars[] = {
     {'-', TOK_MINUS},
     {'~', TOK_TILDE},
     {'!', TOK_BANG},
+    {'<', TOK_LT},
+    {'>', TOK_GT},
     {0, 0},
 };
 
