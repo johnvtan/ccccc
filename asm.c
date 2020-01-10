@@ -16,6 +16,11 @@ static int op_to_num_args(opcode_t op) {
         case OP_PUSH:
         case OP_POP:
         case OP_DIV:
+        case OP_SETNE:
+        case OP_SETB:
+        case OP_SETBE:
+        case OP_SETA:
+        case OP_SETAE:
             return 1;
         case OP_RET:
         case OP_CQO:
