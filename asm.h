@@ -74,6 +74,14 @@ typedef struct {
     };
 } operand_t;
 
+typedef struct {
+    string_t *name; 
+    enum {
+        LABEL_STATIC,
+        LABEL_GLOBAL,
+    } linkage;
+} label_t;
+
 // TODO do all instructions have only one or two operands?
 typedef struct {
     opcode_t op;
@@ -91,7 +99,7 @@ typedef struct {
     output_type_t type;
     union {
         instr_t instr;
-        string_t *label;
+        label_t label;
     };
 } output_t;
 

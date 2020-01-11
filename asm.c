@@ -29,6 +29,25 @@ static int op_to_num_args(opcode_t op) {
     }
 }
 
+static output_t *unique_label(string_t *seed) {
+    static int count = 0;
+    char buf[32];
+    snprintf(buf, 32, "%d", count++);
+    output_t *label = malloc(sizeof(output_t));
+    label->type = OUTPUT_LABEL;
+    string_append(seed, buf, strnlen(buf, 32));
+    label->label.name = seed;
+    return label;
+}
+
+static output_t *new_label(string_t *name, int linkage) {
+    output_t *ret = malloc(sizeof(output_t));
+    ret->type = OUTPUT_LABEL;
+    ret->label.name = name;
+    ret->label.linkage = linkage;
+    return ret;
+}
+
 static output_t *instr_r2r(opcode_t op, reg_t src, reg_t dst) {
     output_t *out = malloc(sizeof(output_t));
     if (!out)
@@ -347,9 +366,7 @@ static list_t *fn_def_to_pseudo_asm(fn_def_t *fn_def) {
     // TODO totally skipping params now
     // TODO type checking on return type, but also skipping that for now 
     list_t *ret = list_new();
-    output_t *fn_label = malloc(sizeof(output_t));
-    fn_label->type = OUTPUT_LABEL;
-    fn_label->label = fn_def->name;
+    output_t *fn_label = new_label(fn_def->name, LABEL_GLOBAL);
     list_push(ret, fn_label);
     
     stmt_t *curr_stmt = list_pop(fn_def->stmts);
@@ -470,8 +487,10 @@ void print_asm(list_t *output) {
     output_t *curr = list_pop(output);
     for (; curr; curr = list_pop(output)) {
         if (curr->type == OUTPUT_LABEL) {
-            printf(".globl %s\n", string_get(curr->label));
-            printf("%s:\n", string_get(curr->label));
+            if (curr->label.linkage == LABEL_GLOBAL) {
+                printf(".globl %s\n", string_get(curr->label.name));
+            }
+            printf("%s:\n", string_get(curr->label.name));
             continue;
         }
 
