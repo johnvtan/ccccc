@@ -17,10 +17,10 @@ static int op_to_num_args(opcode_t op) {
         case OP_POP:
         case OP_DIV:
         case OP_SETNE:
-        case OP_SETB:
-        case OP_SETBE:
-        case OP_SETA:
-        case OP_SETAE:
+        case OP_SETL:
+        case OP_SETLE:
+        case OP_SETG:
+        case OP_SETGE:
             return 1;
         case OP_RET:
         case OP_CQO:
@@ -249,7 +249,7 @@ static list_t *binop_to_instrs(bin_expr_t *bin) {
         output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
         list_push(ret, mov);
 
-        output_t *setb = instr_r(OP_SETB, REG_AL);
+        output_t *setb = instr_r(OP_SETL, REG_AL);
         list_push(ret, setb);
         return ret;
     }
@@ -261,7 +261,7 @@ static list_t *binop_to_instrs(bin_expr_t *bin) {
         output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
         list_push(ret, mov);
 
-        output_t *setbe = instr_r(OP_SETBE, REG_AL);
+        output_t *setbe = instr_r(OP_SETLE, REG_AL);
         list_push(ret, setbe);
         return ret;
     }
@@ -273,7 +273,7 @@ static list_t *binop_to_instrs(bin_expr_t *bin) {
         output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
         list_push(ret, mov);
 
-        output_t *seta = instr_r(OP_SETA, REG_AL);
+        output_t *seta = instr_r(OP_SETG, REG_AL);
         list_push(ret, seta);
         return ret;
     }
@@ -285,7 +285,7 @@ static list_t *binop_to_instrs(bin_expr_t *bin) {
         output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
         list_push(ret, mov);
 
-        output_t *setae = instr_r(OP_SETAE, REG_AL);
+        output_t *setae = instr_r(OP_SETGE, REG_AL);
         list_push(ret, setae);
         return ret;
     }
@@ -421,10 +421,10 @@ static const op_pair_t op_pairs[] = {
     {.op = OP_XCHG, .string = "xchg"},
     {.op = OP_CQO, .string = "cqo"},
     {.op = OP_SETNE, .string = "setne"},
-    {.op = OP_SETB, .string = "setb"},
-    {.op = OP_SETBE, .string = "setbe"},
-    {.op = OP_SETA, .string = "seta"},
-    {.op = OP_SETAE, .string = "setae"},
+    {.op = OP_SETL, .string = "setl"},
+    {.op = OP_SETLE, .string = "setle"},
+    {.op = OP_SETG, .string = "setg"},
+    {.op = OP_SETGE, .string = "setge"},
 
     {0, NULL},
 };
