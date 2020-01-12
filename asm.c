@@ -240,11 +240,28 @@ static list_t *binop_to_instrs(bin_expr_t *bin) {
 
         output_t *end_label = new_label(end, LABEL_STATIC);
         list_push(ret, end_label);
+        list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
+        list_push(ret, instr_i2r(OP_MOV, 0, REG_RAX));
+        list_push(ret, instr_r(OP_SETNE, REG_AL));
         return ret;
     }
 
     if (bin->op == BIN_AND) {
-        UNREACHABLE("haven't implemented AND yet");
+        string_t *and_clause_2 = unique_label("second_and_clause");
+        string_t *end = unique_label("and_end");
+
+        output_t *cmp = instr_i2r(OP_CMP, 0, REG_RAX);
+        list_push(ret, cmp);
+
+        list_push(ret, instr_jmp(OP_JNE, and_clause_2));
+        list_push(ret, instr_jmp(OP_JMP, end));
+        list_push(ret, new_label(and_clause_2, LABEL_STATIC));
+        list_concat(ret, expr_to_instrs(bin->rhs));
+        list_push(ret, new_label(end, LABEL_STATIC));
+        list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
+        list_push(ret, instr_i2r(OP_MOV, 0, REG_RAX));
+        list_push(ret, instr_r(OP_SETNE, REG_AL));
+        return ret;
     }
 
     output_t *push = instr_r(OP_PUSH, REG_RAX);
