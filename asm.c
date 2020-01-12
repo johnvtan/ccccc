@@ -21,6 +21,9 @@ static int op_to_num_args(opcode_t op) {
         case OP_SETLE:
         case OP_SETG:
         case OP_SETGE:
+        case OP_JMP:
+        case OP_JE:
+        case OP_JNE:
             return 1;
         case OP_RET:
         case OP_CQO:
@@ -29,15 +32,16 @@ static int op_to_num_args(opcode_t op) {
     }
 }
 
-static output_t *unique_label(string_t *seed) {
+static string_t *unique_label(char *seed) {
     static int count = 0;
     char buf[32];
+
+    string_t *name = string_new();
+    string_append(name, seed, strnlen(seed, 100));
+
     snprintf(buf, 32, "%d", count++);
-    output_t *label = malloc(sizeof(output_t));
-    label->type = OUTPUT_LABEL;
-    string_append(seed, buf, strnlen(buf, 32));
-    label->label.name = seed;
-    return label;
+    string_append(name, buf, strnlen(buf, 32));
+    return name;
 }
 
 static output_t *new_label(string_t *name, int linkage) {
@@ -121,6 +125,26 @@ static output_t *instr_i(opcode_t op, imm_t src) {
     return out;
 }
 
+static output_t *instr_jmp(opcode_t op, string_t *label) {
+    if (op != OP_JMP && op != OP_JE && op != OP_JNE)
+        return NULL;
+
+    if (!label)
+        return NULL;
+
+    output_t *jmp = malloc(sizeof(output_t));
+    jmp->type = OUTPUT_INSTR;
+ 
+    jmp->instr.num_args = op_to_num_args(op);
+    if (jmp->instr.num_args != 1)
+        return NULL;
+
+    jmp->instr.op = op;
+    jmp->instr.src.type = OPERAND_LABEL;
+    jmp->instr.src.label = label;
+    return jmp;
+}
+
 static output_t *instr(opcode_t op) {
     output_t *out = malloc(sizeof(output_t));
     if (!out)
@@ -192,6 +216,36 @@ static list_t *binop_to_instrs(bin_expr_t *bin) {
     list_t *ret = expr_to_instrs(bin->lhs);
     if (!ret)
         return NULL;
+
+    // AND and OR short circuit, so we don't want to evaluate the RHS if we're not certain we need
+    // to.
+    if (bin->op == BIN_OR) {
+        string_t *or_clause_2 = unique_label("second_or_clause");
+        string_t *end = unique_label("or_end");
+
+        output_t *cmp = instr_i2r(OP_CMP, 0, REG_RAX);
+        list_push(ret, cmp);
+
+        list_push(ret, instr_jmp(OP_JE, or_clause_2));
+
+        output_t *mov = instr_i2r(OP_MOV, 1, REG_RAX);
+        list_push(ret, mov);
+        list_push(ret, instr_jmp(OP_JMP, end));
+        
+        output_t *clause_2_label = new_label(or_clause_2, LABEL_STATIC);
+        list_push(ret, clause_2_label);
+
+        list_t *rhs = expr_to_instrs(bin->rhs);
+        list_concat(ret, rhs);
+
+        output_t *end_label = new_label(end, LABEL_STATIC);
+        list_push(ret, end_label);
+        return ret;
+    }
+
+    if (bin->op == BIN_AND) {
+        UNREACHABLE("haven't implemented AND yet");
+    }
 
     output_t *push = instr_r(OP_PUSH, REG_RAX);
     list_push(ret, push);
@@ -308,7 +362,6 @@ static list_t *binop_to_instrs(bin_expr_t *bin) {
         list_push(ret, setae);
         return ret;
     }
-
     UNREACHABLE("Unknown binary op\n");
     return NULL;
 }
@@ -442,7 +495,9 @@ static const op_pair_t op_pairs[] = {
     {.op = OP_SETLE, .string = "setle"},
     {.op = OP_SETG, .string = "setg"},
     {.op = OP_SETGE, .string = "setge"},
-
+    {.op = OP_JMP, .string = "jmp"},
+    {.op = OP_JE, .string = "je"},
+    {.op = OP_JNE, .string = "jne"},
     {0, NULL},
 };
 
@@ -460,6 +515,10 @@ static char *op_to_string(opcode_t op) {
 static char *operand_to_string(operand_t operand) {
     if (operand.type == OPERAND_REG) {
         return reg_to_string(operand.reg);
+    }
+
+    if (operand.type == OPERAND_LABEL) {
+        return string_get(operand.label);
     }
 
     string_t string;

@@ -25,6 +25,9 @@ typedef enum {
     OP_SETLE,
     OP_SETG,
     OP_SETGE,
+    OP_JMP,
+    OP_JE,
+    OP_JNE,
 } opcode_t;
 
 typedef enum {
@@ -62,17 +65,8 @@ typedef enum {
     OPERAND_MEM_LOC,
     OPERAND_VAR,
     OPERAND_IMM,
+    OPERAND_LABEL,
 } operand_type_t;
-
-typedef struct {
-    operand_type_t type;
-    union {
-        reg_t reg;
-        mem_loc_t mem;
-        var_t var;
-        imm_t imm;
-    };
-} operand_t;
 
 typedef struct {
     string_t *name; 
@@ -81,6 +75,17 @@ typedef struct {
         LABEL_GLOBAL,
     } linkage;
 } label_t;
+
+typedef struct {
+    operand_type_t type;
+    union {
+        reg_t reg;
+        mem_loc_t mem;
+        var_t var;
+        imm_t imm;
+        string_t *label;
+    };
+} operand_t;
 
 // TODO do all instructions have only one or two operands?
 typedef struct {
