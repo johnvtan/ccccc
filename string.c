@@ -69,3 +69,20 @@ void string_free(string_t *string) {
     free(string);
 }
 
+int string_eq(string_t *s1, string_t *s2) {
+    // I guess they might be equal if the user passes in two NULL pointers, but I'm going to say
+    // that's invalid
+    if (!s1 || !s2)
+        return -1;
+    
+    if (s1->len != s2->len)
+        return -1;
+
+    // I'm pretty sure this handles empty string, but I'm not sure
+    for (int i = 0; i < s1->len; i++) {
+        if (s1->buf[i] != s2->buf[i]) {
+            return -1;
+        }
+    }
+    return 0;
+}

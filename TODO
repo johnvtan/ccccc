@@ -32,8 +32,30 @@ x Figure out parsing strategy for binary operations - I don't like the whole fac
     x Bake the precedence into the parsing strategy!
 
 ---------STAGE 4
-- I wonder if I can generalize all the parsing code...
-- Refactor asm generation code. Simplify construction of instructions.
+x I wonder if I can generalize all the parsing code...
+x Refactor asm generation code. Simplify construction of instructions.
+- add the other bin ops.
+- Can I simplify my bin op generation code? its in one giant function and it works but...
+
+---------STAGE 5
+x implement a map, just container on top of a list
+- Think about assignment parsing more, there has to be a way to integrate it with current parsing
+sttrategy and make it a binary op.
+    - I have to figure out the precedence level of an assignment. I'd like to think that it's at the
+    top, but I'm not sure. It's also right associative.
+    - How do I parse the LHS? How do I know if I'm actually in an assignment stmt?
+    - Or maybe just make it a separate expression and cave in
+- Will probably want to introduce the IR from essentials of compilation here since I now have
+variables that can conflict with each other.
+ - Split code generation pass: one that generates IR (x86 with variables), one that takes that IR
+ and allocates space for each variable and returns a map, and one (or two?) more that takes the map
+ and the IR instruction list and outputs valid x86 complete with patched instructions. I'm like
+ starting to worry about how much memory compiling a large file will take.
+    - Like in EoC, the register allocation step can happen in the pass that takes the IR and
+    produces a map. For now, it will only output offsets from EBP, but later it can also do
+    registers and do the whole interference graph stuff.
+- i really need to write unit tests lol, like for map and list and when I probably have a graph data
+structure
 
 ==========Nice to have==========
 - Less questionable organization of code

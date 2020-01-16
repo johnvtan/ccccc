@@ -3,3 +3,5 @@
 test-cases/
 COMPILERBABY
 .gdb_history
+
+test/bin
