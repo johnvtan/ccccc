@@ -18,18 +18,22 @@ int main(int argc, char **argv) {
     if (!input || !input->len)
         return -1;
 
+    debug("Tokenizing...\n");
     list_t *tokens = tokenize(input);
     if (!tokens || !tokens->len)
         return -1;
 
+    debug("Parsing...\n");
     program_t *prog = parse(tokens);
     if (!prog || !prog->fn_defs || !prog->fn_defs->len)
         return -1;
 
+    debug("Generating asm...\n");
     list_t *instrs = gen_pseudo_asm(prog);
     if (!instrs || !instrs->len)
         return -1;
 
+    debug("Outputting asm...\n");
     print_asm(instrs);
     return 0;
 }

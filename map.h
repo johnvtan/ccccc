@@ -12,7 +12,7 @@ typedef struct {
     void *value;
 } pair_t;
 
-typedef struct {
+typedef struct map {
     list_t *pairs;
 } map_t;
 

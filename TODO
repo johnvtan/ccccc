@@ -56,6 +56,52 @@ variables that can conflict with each other.
     registers and do the whole interference graph stuff.
 - i really need to write unit tests lol, like for map and list and when I probably have a graph data
 structure
+- Need to handle environments like in lisp interpreter because variable shadowing is allowed (or
+uniquification pass?)
+e.g.
+int main(void) {
+    int x = 1;
+    if (x) {
+        int x = 2;
+        return x;
+    }
+    return x;
+}
+
+Returns 2.
+I feel like the interference graph can be created using scopes. Things need to be popped off the
+stack after they leave scope (ie, their home on the register must be freed once they leave scope).
+This can be combined
+Is this why 9cc's IR is x86 with infinite registers? Because you can do interference graph analysis
+and allocate registers, then map registers -> registers, memory locations because you know that if
+they are allocated to the same register by this point they don't interfere.
+
+Maybe i'll do it in 3 passes? ast -> x86 with vars -> x86 with infinite regs -> actual x86.
+I'll use x86 with vars to construct the interference graph (which means I'll need to uniquify)
+
+Or can I get away without uniquification? I feel like going for that feels like more optimization.
+Maybe I should aim to stay true to variables being in scope within the braces they're declared.
+
+I like the idea of parsing variables with nested maps, but how do I leverage them for code
+generation? If each scoped block in the AST has its own map, then at code generation I should be
+able to assume that all the variables in that scope are uniquely named and that any variable that I
+find in that scope refers to the variable with the same name in the closest outer environment.
+
+I feel like whichever way I go, I don't need to uniquify and instead I can use the nested
+environment structure for liveness analysis.
+
+OR uniquification can occur by prepending the identifier in a declaration with a unique count (which
+is an invalid variable name), and looking it up in the map can start at the end instead of the
+beginning of the identifier.
+
+The liveness analysis from EoC was pretty fine grained - the exact lifetime of variables were known.
+The inefficient part was spilling, so my goal is to have the same kind of register allocation with
+better spilling (ie, don't globally allocate homes for the variables - free them up when the
+variable dies). That would be a pretty cool optimization to have.
+
+
+PRAHBLEMS
+Can parse declarations, but need to do assign statements.
 
 ==========Nice to have==========
 - Less questionable organization of code

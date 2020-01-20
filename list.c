@@ -26,6 +26,7 @@ int list_push(list_t *list, void *data) {
         return -1;
 
     new_node->data = data;
+    new_node->next = NULL;
     list->tail->next = new_node;
     list->tail = list->tail->next;
     list->len++;

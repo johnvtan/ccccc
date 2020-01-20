@@ -3,6 +3,7 @@
 
 #include "string.h"
 #include "list.h"
+#include "map.h"
 
 struct expr;
 typedef struct expr expr_t;
@@ -102,11 +103,12 @@ typedef struct {
 typedef struct {
     enum {
         STMT_RETURN,
-        STMT_ASSIGN,
+        STMT_DECLARE,
+        STMT_EXPR,
     } type;
     union {
         return_stmt_t *ret;
-        declare_stmt_t *assign;
+        declare_stmt_t *declare;
 
         // Apparently, standalone expressions (ie, not in an assign or return statement) is totally
         // valid C. GCC will compile it, but will warn you.
@@ -114,12 +116,19 @@ typedef struct {
     };
 } stmt_t;
 
+// An environment contains all the variable idents mapped to their types in the current scope
+// The pointer to the outer scope lets the user search other scopes to see if a variable is defined
+typedef struct env {
+    map_t *map;
+    struct env *outer;
+} env_t;
+
 typedef struct {
     string_t *name;
     list_t *params;
     list_t *stmts;
     builtin_type_t ret_type;
-    map_t *locals;
+    env_t *env; // maps 
 } fn_def_t;
 
 // a program is defined as a list of functions

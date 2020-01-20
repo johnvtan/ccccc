@@ -180,6 +180,7 @@ list_t *tokenize(string_t *input) {
             goto next;
 
         unrecognized_token(buf);
+
 next:
         list_push(token_list, curr_token);
         buf += advance;
