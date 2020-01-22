@@ -65,24 +65,27 @@ static expr_t *parse_primary(list_t *tokens, env_t *env) {
     expr->primary = malloc(sizeof(primary_t));
 
     if (curr->type == TOK_INT_LIT) {
-        expr->primary->integer = curr->int_literal;
-        expr->primary->type = PRIMARY_INT;
+        debug("Found integer literal: %d\n", curr->int_literal);
+        expr->primary->integer = curr->int_literal; expr->primary->type = PRIMARY_INT;
         return expr;
     }
 
     if (curr->type == TOK_CHAR_LIT) {
+        debug("Found character literal\n");
         expr->primary->character = curr->char_literal;
         expr->primary->type = PRIMARY_CHAR;
         return expr;
     }
 
     if (curr->type == TOK_IDENT) {
+        debug("Found identifier: %s\n", string_get(curr->ident));
         expr->primary->var = curr->ident;
         expr->primary->type = PRIMARY_VAR;
         return expr;
     }
 
     if (curr->type == TOK_OPEN_PAREN) {
+        debug("Found nested expr\n");
         expr->primary->type = PRIMARY_EXPR;
         expr->primary->expr = parse_expr(tokens, env);
         expect_next(tokens, TOK_CLOSE_PAREN);
@@ -99,16 +102,19 @@ static expr_t *parse_unary(list_t *tokens, env_t *env) {
 
     token_t *curr = list_peek(tokens);
     if (curr->type == TOK_BANG) {
+        debug("Found unary bang\n");
         list_pop(tokens);
         return new_unary_expr(UNARY_LOGICAL_NEG, parse_unary(tokens, env));
     }
 
     if (curr->type == TOK_TILDE) {
+        debug("Found unary tilde\n");
         list_pop(tokens);
         return new_unary_expr(UNARY_BITWISE_COMP, parse_unary(tokens, env));
     }
 
     if (curr->type == TOK_MINUS) {
+        debug("Found unary neg\n");
         list_pop(tokens);
         return new_unary_expr(UNARY_MATH_NEG, parse_unary(tokens, env));
     }
@@ -125,9 +131,11 @@ static expr_t *parse_mul_div(list_t *tokens, env_t *env) {
     token_t *curr = list_peek(tokens);
     while ((curr = list_peek(tokens)) && curr) {
         if (curr->type == TOK_MULT) {
+            debug("Found mult\n");
             list_pop(tokens);
             ret = new_bin_expr(BIN_MUL, ret, parse_unary(tokens, env));
         } else if (curr->type == TOK_DIV) {
+            debug("Found div\n");
             list_pop(tokens);
             ret = new_bin_expr(BIN_DIV, ret, parse_unary(tokens, env));
         } else {
@@ -146,9 +154,11 @@ static expr_t *parse_add_sub(list_t *tokens, env_t *env) {
     token_t *curr;
     while ((curr = list_peek(tokens)) && curr) {
         if (curr->type == TOK_PLUS) {
+            debug("Found plus\n");
             list_pop(tokens);
             ret = new_bin_expr(BIN_ADD, ret, parse_mul_div(tokens, env));
         } else if (curr->type == TOK_MINUS) {
+            debug("Found minus\n");
             list_pop(tokens);
             ret = new_bin_expr(BIN_SUB, ret, parse_mul_div(tokens, env));
         } else {
@@ -166,15 +176,19 @@ static expr_t *parse_relational(list_t *tokens, env_t *env) {
     token_t *curr;
     while ((curr = list_peek(tokens)) && curr) {
         if (curr->type == TOK_GT) {
+            debug("Found gt");
             list_pop(tokens);
             ret = new_bin_expr(BIN_GT, ret, parse_add_sub(tokens, env));
         } else if (curr->type == TOK_LT) {
+            debug("Found lt");
             list_pop(tokens);
             ret = new_bin_expr(BIN_LT, ret, parse_add_sub(tokens, env));
         } else if (curr->type == TOK_GTE) {
+            debug("Found lte");
             list_pop(tokens);
             ret = new_bin_expr(BIN_GTE, ret, parse_add_sub(tokens, env));
         } else if (curr->type == TOK_LTE) {
+            debug("Found lte");
             list_pop(tokens);
             ret = new_bin_expr(BIN_LTE, ret, parse_add_sub(tokens, env));
         } else {
@@ -193,9 +207,11 @@ static expr_t *parse_equality(list_t *tokens, env_t *env) {
     token_t *curr;
     while ((curr = list_peek(tokens)) && curr) {
         if (curr->type == TOK_NE) {
+            debug("Found not equal\n");
             list_pop(tokens);
             ret = new_bin_expr(BIN_NE, ret, parse_relational(tokens, env));
         } else if (curr->type == TOK_EQ) {
+            debug("Found equal to\n");
             list_pop(tokens);
             ret = new_bin_expr(BIN_EQ, ret, parse_relational(tokens, env));
         } else {
@@ -214,6 +230,7 @@ static expr_t *parse_logical_and(list_t *tokens, env_t *env) {
     token_t *curr;
     while ((curr = list_peek(tokens)) && curr) {
         if (curr->type == TOK_AND) {
+            debug("Found logical and expr\n");
             list_pop(tokens);
             ret = new_bin_expr(BIN_AND, ret, parse_equality(tokens, env));
         } else {
@@ -232,6 +249,7 @@ static expr_t *parse_logical_or(list_t *tokens, env_t *env) {
     token_t *curr;
     while ((curr = list_peek(tokens)) && curr) {
         if (curr->type == TOK_OR) {
+            debug("Found logical or expr\n");
             list_pop(tokens);
             ret = new_bin_expr(BIN_OR, ret, parse_logical_and(tokens, env));
         } else {
@@ -241,8 +259,46 @@ static expr_t *parse_logical_or(list_t *tokens, env_t *env) {
     return ret;
 }
 
+// for now, only idents can be used in assign statements
+// Later we want this to check for specific unary ops, like pointer derefs and pre/postinc and array
+// refs
+static bool is_valid_lhs(expr_t *expr) {
+    return expr && expr->type == PRIMARY && expr->primary->type == PRIMARY_VAR;
+}
+
+static expr_t *parse_assign(list_t *tokens, env_t *env) {
+    expr_t *maybe_lhs = parse_logical_or(tokens, env);
+    if (!is_valid_lhs(maybe_lhs)) {
+        debug("parse_assign: Not a valid lhs so returning\n");
+        return maybe_lhs;
+    }
+    // here we might have an assignment statement
+    debug("parse_assign: Maybe an assign\n");
+    token_t *next = list_peek(tokens);
+    if (next->type != TOK_ASSIGN) {
+        debug("parse_assign: Didn't find an equals sign, so returning\n");
+        return maybe_lhs;
+    }
+
+    // ok cool we got an assignment statement
+    debug("parse_assign: I think we got an assignment statement\n");
+    list_pop(tokens);
+    expr_t *rhs = parse_expr(tokens, env);
+    if (!rhs) {
+        debug("parse_assign: Bad rhs, returning null\n");
+        return NULL;
+    }
+
+    expr_t *ret = malloc(sizeof(expr_t)); 
+    ret->type = ASSIGN;
+    ret->assign = malloc(sizeof(assign_t));
+    ret->assign->lhs = maybe_lhs;
+    ret->assign->rhs = rhs;
+    return ret;
+}
+
 static expr_t *parse_expr(list_t *tokens, env_t *env) {
-    return parse_logical_or(tokens, env);
+    return parse_assign(tokens, env);
 }
 
 static return_stmt_t *parse_return_stmt(list_t *tokens, env_t *env) {
@@ -320,12 +376,13 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
     }
 
     // Otherwise, try to parse an expression
-    debug("parse_stmt: Found experssion statement\n");
+    debug("parse_stmt: Found expression statement\n");
     expr_t *expr = parse_expr(tokens, env);
     if (!expr)
         return NULL;
     ret->type = STMT_EXPR;
     ret->expr = expr; 
+    expect_next(tokens, TOK_SEMICOLON);
     return ret;
 }
 

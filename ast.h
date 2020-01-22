@@ -65,7 +65,7 @@ typedef struct {
 } primary_t;
 
 typedef struct {
-    string_t *lhs;
+    expr_t *lhs;
     expr_t *rhs;
 } assign_t;
 
@@ -74,6 +74,7 @@ typedef struct expr {
         PRIMARY,
         UNARY_OP,
         BIN_OP,
+        ASSIGN,
     } type;
     union {
         primary_t *primary;
