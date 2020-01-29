@@ -322,7 +322,6 @@ static declare_stmt_t *parse_declare_stmt(list_t *tokens, env_t *env) {
     }
     declare->name = next->ident;
     debug("parse_declare_stmt: Found variable %s\n", string_get(declare->name));
-    assert(env->map != NULL);
     map_set(env->map, declare->name, &declare->type);
     list_pop(tokens);
     next = list_peek(tokens);

@@ -16,7 +16,8 @@ typedef enum {
 
 typedef struct {
     builtin_type_t type;
-    string_t name; } var_t;
+    string_t *name;
+} var_t;
 
 typedef struct {
     enum unary_op {

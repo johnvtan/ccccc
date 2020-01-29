@@ -100,14 +100,56 @@ better spilling (ie, don't globally allocate homes for the variables - free them
 variable dies). That would be a pretty cool optimization to have.
 
 
-PRAHBLEMS
-Can parse declarations, but need to do assign statements.
+-Restructuring/introducing an IR
+what a pain man
+Have an intermediate pass in ir.c that spits out x86 with (unique? scoped?) variables. Then a second
+pass in x86.c that spits out x86 list of instructions. THEN a third pass that prints out the
+instructions.
+
+BinOp instructions need to handle args differently. Or maybe not? I can just reserve eax and ecx for
+general purpose use. So the statement 2 + 2; becomes:
+    mov 2, rax
+    push rax
+    mov 2 rax
+    pop rcx
+    add rcx, rax
+
+and x = 2 + 2; becomes:
+mov 2, rax
+push rax
+mov 2 rax
+pop rcx
+add rcx, rax
+mov rax, (var x)
+
+Ok I think that's fine. I can basically use the Essentials of Compilation IR/graph coloring strategy
+too, but instead I'll need to reserve rax and rcx both and prevent them from being used as homes.
+So rax and rcx can only be used for unary/binary expressions. Other registers can be used for
+assignment locations. So the expr code should be fine? What changes is assignment statements, which
+is totally new.
+
+How does essentials of compilation handle sub expressions? It didn't! At least not by the time we
+were generating assembly. It removed complex subexpressions before that.
+
+Will need to figure out variable scoping asap.
+
+Put map/string/list in utils folder. Maybe implement an environment too?
+
+Haha memory usage is maybe hopefully okay. Worst case I can split up files.
+I'm starting on outputting the first pass. It's pretty messy but I can handle declare statements
+now. I'm also pretty sure I'm doing envs wrong. Each function should have a locals list and from
+that I should be able to determine how to allocate homes. Maybe refactor that part so that instead
+of an env, each fn_def gets a list of var_t's.
+
+if binops all push on the stack then there's no reason to even do register allocation...
+I'll put off register allocation, but do the stack allocation stuff per function/scope.
+So it'll be parse -> home alloc using envs from parse -> asm generation (which should be clever-ish
+about how to properly load/store data from the stack so I don't need another pass)
 
 ==========Nice to have==========
 - Less questionable organization of code
 - Decent error messages
 - Properly reclaim used memory
-
 
 ==========Notes==========
 What's an expression in C? I'm thinking it's one of:
