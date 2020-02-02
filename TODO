@@ -146,6 +146,15 @@ I'll put off register allocation, but do the stack allocation stuff per function
 So it'll be parse -> home alloc using envs from parse -> asm generation (which should be clever-ish
 about how to properly load/store data from the stack so I don't need another pass)
 
+Ok, need to refactor asm.c since that's a major pain point. I think parsing/tokenizing is totally
+fine.
+
+Here's what I'm going to do. No IR step - instead just allocate homes right after parsing, and use
+that to generate proper x86. Have an instr_m2m/instr_r2m/instr_m2r function that basically does what
+patch instructions did in EoC. Hardest part rn is figuring out how to allocate homes properly based
+on scope. I think when I allocate homes, it'll probably do something intrusive to the AST and like
+mutate the env in each function block.
+
 ==========Nice to have==========
 - Less questionable organization of code
 - Decent error messages

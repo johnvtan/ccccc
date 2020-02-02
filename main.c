@@ -28,8 +28,12 @@ int main(int argc, char **argv) {
     if (!prog || !prog->fn_defs || !prog->fn_defs->len)
         return -1;
 
+    /*
+     * TODO - do variable allocation here.
+     */
+    debug("Allocating variable homes...\n");
     debug("Generating asm...\n");
-    list_t *instrs = gen_pseudo_asm(prog);
+    list_t *instrs = gen_asm(prog);
     if (!instrs || !instrs->len)
         return -1;
 

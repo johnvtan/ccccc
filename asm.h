@@ -108,7 +108,5 @@ typedef struct {
     };
 } output_t;
 
-list_t *gen_pseudo_asm(program_t *prog);
-list_t *gen_real_asm(program_t *prog);
-void print_asm(list_t *instrs);
+list_t *gen_asm(program_t *prog);
 #endif
