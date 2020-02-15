@@ -8,7 +8,7 @@
 // The pointer to the parent scope lets the user search other scopes to see if a variable is defined
 // The list of children environments is useful for allocating homes.
 typedef struct env {
-    map_t *map;
+    list_t *vars;
     list_t *children; // list of children environments
     struct env *parent;
 } env_t;

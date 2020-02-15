@@ -1,5 +1,5 @@
-#include "alloc.h"
+#include "compile.h"
 
-env_t *alloc_homes(void) {
+env_t *alloc_homes(env_t *global) {
     return NULL;
 }

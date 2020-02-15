@@ -58,7 +58,4 @@ typedef struct token {
     };
 } token_t;
 
-// TODO change this to use string_t
-list_t *tokenize(string_t *input);
-void print_token(token_t *token);
 #endif

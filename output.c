@@ -1,4 +1,4 @@
-#include "output.h"
+#include "compile.h"
 
 typedef struct reg_pair {
     reg_t reg;

@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "ast.h" // for var_t
 
 typedef enum {
     OP_MOV = 1,
@@ -81,7 +80,7 @@ typedef struct {
     union {
         reg_t reg;
         mem_loc_t mem;
-        var_t var;
+        //var_t var;
         imm_t imm;
         string_t *label;
     };

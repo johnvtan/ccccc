@@ -5,6 +5,7 @@
 #include "list.h"
 #include "map.h"
 #include "env.h"
+//#include "asm.h"
 
 struct expr;
 typedef struct expr expr_t;
@@ -18,6 +19,7 @@ typedef enum {
 typedef struct {
     builtin_type_t type;
     string_t *name;
+    mem_loc_t home;
 } var_t;
 
 typedef struct {
@@ -133,8 +135,5 @@ typedef struct {
 typedef struct {
     list_t *fn_defs;
 } program_t;
-
-program_t *parse(list_t *tokens);
-void print_ast(program_t *prog);
 
 #endif
