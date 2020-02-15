@@ -389,9 +389,7 @@ static fn_def_t *parse_fn_def(list_t *tokens) {
     fn_def_t *fn = malloc(sizeof(fn_def_t));
     fn->params = list_new();
     fn->stmts = list_new();
-    fn->env = malloc(sizeof(env_t));
-    fn->env->map = map_new();
-    fn->env->outer = &global_env;
+    fn->env = env_new(&global_env);
 
     // first token should be a type
     token_t *curr = list_pop(tokens);
@@ -445,11 +443,9 @@ program_t *parse(list_t *tokens) {
     global_env.map = map_new();
 
     // global environment is the outermost environment. Should contain all fn defs.
-    global_env.outer = NULL;
+    global_env.parent = NULL;
     while (tokens->len) {
         fn_def_t *next_fn = parse_fn_def(tokens);
-        if (!next_fn)
-            return NULL;
         map_set(global_env.map, next_fn->name, &next_fn->ret_type);
         list_push(prog->fn_defs, next_fn);
     }

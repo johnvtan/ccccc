@@ -535,9 +535,6 @@ list_t *gen_asm(program_t *prog) {
             return NULL;
         list_concat(output, fn_instrs);
     }
-    debug("%d\n", output->len);
-    debug("done111\n");
-    debug("%d\n", output->len);
     return output;
 }
 

@@ -1,8 +1,16 @@
+TARGET := COMPILERBABY
+CC := gcc
+CFLAGS := -Wall -Wextra
+DEBUGFLAGS := -g -O0
+
+SRCS := $(wildcard *.c)
+
+
 all:
-	gcc -g -O0 -Wall -Wextra -o COMPILERBABY main.c list.c string.c tokenize.c parse.c introspect.c asm.c map.c output.c
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)
 
 debug:
-	gcc -g -O0 -Wall -Wextra -DDEBUG -o COMPILERBABY main.c list.c string.c tokenize.c parse.c introspect.c asm.c map.c output.c
+	$(CC) $(CFLAGS) $(DEBUGFLAGS) -o $(TARGET) $(SRCS)
 
 clean:
-	rm -rf COMPILERBABY
+	rm -rf $(TARGET) 

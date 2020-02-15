@@ -4,6 +4,7 @@
 #include "string.h"
 #include "list.h"
 #include "map.h"
+#include "env.h"
 
 struct expr;
 typedef struct expr expr_t;
@@ -117,13 +118,6 @@ typedef struct {
         expr_t *expr;
     };
 } stmt_t;
-
-// An environment contains all the variable idents mapped to their types in the current scope
-// The pointer to the outer scope lets the user search other scopes to see if a variable is defined
-typedef struct env {
-    map_t *map;
-    struct env *outer;
-} env_t;
 
 typedef struct {
     string_t *name;

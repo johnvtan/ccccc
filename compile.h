@@ -9,6 +9,7 @@
 #include "ast.h"
 #include "asm.h"
 #include "output.h"
+#include "env.h"
 
 #define UNREACHABLE(msg) \
     printf("%s line %d: Reached unreachable branch with message - %s\n", __FILE__, __LINE__, msg);\
