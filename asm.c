@@ -55,12 +55,14 @@ static output_t *new_label(string_t *name, int linkage) {
 
 static output_t *instr_r2r(opcode_t op, reg_t src, reg_t dst) {
     output_t *out = malloc(sizeof(output_t));
-    if (!out)
-        return NULL;
+    if (!out) {
+        UNREACHABLE("instr_r2r: malloc failed\n");
+    }
 
     out->instr.num_args = op_to_num_args(op);
-    if (out->instr.num_args != 2)
-        return NULL;
+    if (out->instr.num_args != 2) {
+        UNREACHABLE("instr_r2r: num args != 2\n");
+    }
 
     out->type = OUTPUT_INSTR;
     out->instr.op = op;
@@ -74,12 +76,14 @@ static output_t *instr_r2r(opcode_t op, reg_t src, reg_t dst) {
 
 static output_t *instr_i2r(opcode_t op, imm_t src, reg_t dst) {
     output_t *out = malloc(sizeof(output_t));
-    if (!out)
-        return NULL;
+    if (!out) {
+        UNREACHABLE("instr_i2r: malloc failed\n");
+    }
 
     out->instr.num_args = op_to_num_args(op);
-    if (out->instr.num_args != 2)
-        return NULL;
+    if (out->instr.num_args != 2) {
+        UNREACHABLE("instr_i2r: num args != 2\n");
+    }
 
     out->type = OUTPUT_INSTR;
     out->instr.op = op;
@@ -138,12 +142,14 @@ static output_t *instr_m2r(opcode_t op, mem_loc_t src, reg_t dst) {
 
 static output_t *instr_r(opcode_t op, reg_t src) {
     output_t *out = malloc(sizeof(output_t));
-    if (!out)
-        return NULL;
+    if (!out) {
+        UNREACHABLE("instr_r: malloc failed\n");
+    }
 
     out->instr.num_args = op_to_num_args(op);
-    if (out->instr.num_args != 1)
-        return NULL;
+    if (out->instr.num_args != 1) {
+        UNREACHABLE("instr_r: num args != 1 for this opcode\n");
+    }
 
     out->type = OUTPUT_INSTR;
     out->instr.op = op;
@@ -154,18 +160,21 @@ static output_t *instr_r(opcode_t op, reg_t src) {
 }
 
 static output_t *instr_jmp(opcode_t op, string_t *label) {
-    if (op != OP_JMP && op != OP_JE && op != OP_JNE)
-        return NULL;
+    if (op != OP_JMP && op != OP_JE && op != OP_JNE) {
+        UNREACHABLE("instr_jmp: not a jmp opcode\n");
+    }
 
-    if (!label)
-        return NULL;
+    if (!label) {
+        UNREACHABLE("instr_jmp: null label\n");
+    }
 
     output_t *jmp = malloc(sizeof(output_t));
     jmp->type = OUTPUT_INSTR;
  
     jmp->instr.num_args = op_to_num_args(op);
-    if (jmp->instr.num_args != 1)
-        return NULL;
+    if (jmp->instr.num_args != 1) {
+        UNREACHABLE("instr_jmp: opcode has wrong number of args, not even sure how this happens\n");
+    }
 
     jmp->instr.op = op;
     jmp->instr.src.type = OPERAND_LABEL;
@@ -175,12 +184,14 @@ static output_t *instr_jmp(opcode_t op, string_t *label) {
 
 static output_t *instr(opcode_t op) {
     output_t *out = malloc(sizeof(output_t));
-    if (!out)
-        return NULL;
+    if (!out) {
+        UNREACHABLE("instr: malloc failed");
+    }
 
     out->instr.num_args = op_to_num_args(op);
-    if (out->instr.num_args != 0)
-        return NULL;
+    if (out->instr.num_args != 0) {
+        UNREACHABLE("instr: opcode has nonzero number of args\n");
+    }
 
     out->type = OUTPUT_INSTR;
     out->instr.op = op;
@@ -189,8 +200,9 @@ static output_t *instr(opcode_t op) {
 }
 
 static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
-    if (!primary)
-        return NULL;
+    if (!primary) {
+        UNREACHABLE("primary_to_instrs: wtf are you doing, primary is null\n");
+    }
 
     if (primary->type == PRIMARY_INT) {
         list_t *ret = list_new();
@@ -216,8 +228,9 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
 
 static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
     list_t *ret = expr_to_instrs(unary->expr, env);
-    if (!ret)
-        return NULL;
+    if (!ret) {
+        UNREACHABLE("unary_to_instrs: unary expr could not be generated\n");
+    }
 
     if (unary->op == UNARY_MATH_NEG) {
         list_push(ret, instr_r(OP_NEG, REG_RAX));
@@ -247,11 +260,14 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
 }
 
 static list_t *binop_to_instrs(bin_expr_t *bin, env_t *env) {
-    if (!bin)
-        return NULL;
+    if (!bin) {
+        UNREACHABLE("binop_to_instrs: bin is null wtf are you doing\n");
+    }
+
     list_t *ret = expr_to_instrs(bin->lhs, env);
-    if (!ret)
-        return NULL;
+    if (!ret) {
+        UNREACHABLE("binop_to_instrs: failed to generate lhs\n");
+    }
 
     // AND and OR short circuit, so we don't want to evaluate the RHS if we're not certain we need
     // to.
@@ -365,17 +381,30 @@ static list_t *binop_to_instrs(bin_expr_t *bin, env_t *env) {
     return NULL;
 }
 
-// I think I can use scoping instead of uniquifying to get this right...
+static bool is_valid_assign_lhs(expr_t *expr) {
+    return expr->type == PRIMARY && expr->primary->type == PRIMARY_VAR;
+}
+
 static list_t *assign_to_instrs(assign_t *assign, env_t *env) {
+    debug("Found assignment statement\n");
+    if (!is_valid_assign_lhs(assign->lhs)) {
+        UNREACHABLE("assign_to_instrs: invalid lhs to assignment statement\n");
+    }
+
     list_t *ret = list_new();
+    list_concat(ret, expr_to_instrs(assign->rhs, env));
+    mem_loc_t *variable_home = map_get(env->homes, assign->lhs->primary->var);
+    output_t *mov = instr_r2m(OP_MOV, REG_RAX, *variable_home);
+    list_push(ret, mov);
     return ret;
 }
 
 
 // TODO how to not put everything into eax
 static list_t *expr_to_instrs(expr_t *expr, env_t *env) {
-    if (!expr)
-        return NULL;
+    if (!expr) {
+        UNREACHABLE("expr_to_instrs: expr is invalid\n");
+    }
 
     if (expr->type == PRIMARY) {
         return primary_to_instrs(expr->primary, env);
@@ -400,14 +429,14 @@ static list_t *expr_to_instrs(expr_t *expr, env_t *env) {
 // TODO does each statement correspond to an instruction?
 // This should probably return a (map? env?) as well.
 static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env) {
-    if (!stmt)
-        return NULL;
+    if (!stmt) {
+        UNREACHABLE("stmt_to_instrs: stmt is invalid\n");
+    }
+
     list_t *ret = list_new();
     if (stmt->type == STMT_RETURN) {
         debug("Found return statement\n");
         list_t *expr_instrs = expr_to_instrs(stmt->ret->expr, env);
-        if (!expr_instrs)
-            return NULL;
         list_concat(ret, expr_instrs);
 
         output_t *retq = instr(OP_RET);
@@ -431,8 +460,9 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env) {
     if (stmt->type == STMT_EXPR) {
         debug("Found an expr statement\n");
         list_t *expr_instrs = expr_to_instrs(stmt->expr, env);
-        if (!expr_instrs)
-            return NULL;
+        if (!expr_instrs) {
+            UNREACHABLE("expr_instrs is invalid")
+        }
         list_concat(ret, expr_instrs);
         return ret;
     }
@@ -443,12 +473,9 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env) {
 
 // transforms an fn_def_t ast node to a list of x86 instructions
 static list_t *fn_def_to_asm(fn_def_t *fn_def) {
-    if (!fn_def)
-        return NULL;
-    if (!fn_def->name)
-        return NULL;
-    if (!fn_def->stmts)
-        return NULL;
+    if (!fn_def || !fn_def->name || !fn_def->stmts) {
+        UNREACHABLE("fn_def_to_asm: malformed fn_def\n");
+    }
 
     // TODO totally skipping params now
     // TODO type checking on return type, but also skipping that for now 
@@ -459,25 +486,29 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
     stmt_t *curr_stmt = list_pop(fn_def->stmts);
     for (; curr_stmt; curr_stmt = list_pop(fn_def->stmts)) {
         list_t *stmt_instrs = stmt_to_instrs(curr_stmt, fn_def->env);         
-        if (!stmt_instrs)
-            return NULL;
+        if (!stmt_instrs) {
+            UNREACHABLE("fn_def_to_asm: null stmt_instrs\n");
+        }
         list_concat(ret, stmt_instrs);
     }
     return ret;
 }
 
 list_t *gen_asm(program_t *prog, env_t *global_env) {
-    if (!prog || !prog->fn_defs)
-        return NULL;
-    debug("=====================Generating IR=====================\n");
+    if (!prog || !prog->fn_defs) {
+        UNREACHABLE("gen_asm: malformed program\n");
+    }
+    debug("=====================Generating ASM=====================\n");
     list_t *output = list_new();
     fn_def_t *fn_def = list_pop(prog->fn_defs);
     for (; fn_def; fn_def = list_pop(prog->fn_defs)) {
         list_t *fn_instrs = fn_def_to_asm(fn_def);
-        if (!fn_instrs)
-            return NULL;
+        if (!fn_instrs) {
+            UNREACHABLE("gen_asm: null fn_instrs\n");
+        }
         list_concat(output, fn_instrs);
     }
+    debug("length: %d\n", output->len);
     return output;
 }
 
