@@ -64,12 +64,14 @@ static bool is_whitespace(char c) {
 static int string_literal(char *p, token_t *token) {
     if (*p != '"')
         return -1;
+    (void)token;
     return -1;
 }
 
 static int char_literal(char *p, token_t *token) {
     if (*p != '\'')
         return -1;
+    (void)token;
     return -1;
 }
 

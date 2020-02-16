@@ -14,6 +14,11 @@ static void alloc_scoped_env(env_t *env, int offset) {
         // This seems kinda dirty, but useful-ish for easier lookup
         // It's still linear though lol
         map_set(env->homes, var->name, &var->home);
+
+        if (offset < env->sp_offset) {
+            env->sp_offset = offset;
+        }
+
         // TODO actually find the size of each variable
         // For now, assume everything is 64 bits.
         offset -= 8;

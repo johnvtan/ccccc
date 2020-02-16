@@ -10,6 +10,7 @@ static const reg_pair_t reg_pairs[] = {
     {.reg = REG_RCX, .string = "%rcx"},
     {.reg = REG_AL, .string = "%al"},
     {.reg = REG_RBP, .string = "%rbp"},
+    {.reg = REG_RSP, .string = "%rsp"},
     {0, NULL},
 };
 

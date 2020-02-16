@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
     alloc_homes(global_env);
 
     debug("Generating asm...\n");
-    list_t *instrs = gen_asm(prog, global_env);
+    list_t *instrs = gen_asm(prog);
     if (!instrs || !instrs->len)
         return -1;
 

@@ -426,9 +426,7 @@ static list_t *expr_to_instrs(expr_t *expr, env_t *env) {
     return NULL;
 }
 
-// TODO does each statement correspond to an instruction?
-// This should probably return a (map? env?) as well.
-static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env) {
+static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label) {
     if (!stmt) {
         UNREACHABLE("stmt_to_instrs: stmt is invalid\n");
     }
@@ -439,8 +437,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env) {
         list_t *expr_instrs = expr_to_instrs(stmt->ret->expr, env);
         list_concat(ret, expr_instrs);
 
-        output_t *retq = instr(OP_RET);
-        list_push(ret, retq);
+        list_push(ret, instr_jmp(OP_JMP, epilogue_label->label.name));
         return ret;
     }
 
@@ -450,7 +447,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env) {
             list_concat(ret, expr_to_instrs(stmt->declare->init_expr, env));
 
             // expr should be in rax, so move it to the variable home.
-            mem_loc_t *var_home = (var_t*)map_get(env->homes, stmt->declare->name);
+            mem_loc_t *var_home = map_get(env->homes, stmt->declare->name);
             output_t *mov = instr_r2m(OP_MOV, REG_RAX, *var_home);
             list_push(ret, mov);
         }
@@ -482,19 +479,34 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
     list_t *ret = list_new();
     output_t *fn_label = new_label(fn_def->name, LABEL_GLOBAL);
     list_push(ret, fn_label);
+
+    // function prologue
+    list_push(ret, instr_r(OP_PUSH, REG_RBP));
+    list_push(ret, instr_r2r(OP_MOV, REG_RSP, REG_RBP));
+    list_push(ret, instr_i2r(OP_ADD, fn_def->env->sp_offset, REG_RSP));
     
+    // function epilogue label
+    output_t *epilogue_label = new_label(unique_label("fn_epilogue"), LABEL_STATIC);
+
     stmt_t *curr_stmt = list_pop(fn_def->stmts);
     for (; curr_stmt; curr_stmt = list_pop(fn_def->stmts)) {
-        list_t *stmt_instrs = stmt_to_instrs(curr_stmt, fn_def->env);         
+        list_t *stmt_instrs = stmt_to_instrs(curr_stmt, fn_def->env, epilogue_label);
         if (!stmt_instrs) {
             UNREACHABLE("fn_def_to_asm: null stmt_instrs\n");
         }
         list_concat(ret, stmt_instrs);
     }
+
+    // function epilogue
+    list_push(ret, epilogue_label);
+    list_push(ret, instr_r2r(OP_MOV, REG_RBP, REG_RSP));
+    list_push(ret, instr_r(OP_POP, REG_RBP));
+    list_push(ret, instr(OP_RET));
+
     return ret;
 }
 
-list_t *gen_asm(program_t *prog, env_t *global_env) {
+list_t *gen_asm(program_t *prog) {
     if (!prog || !prog->fn_defs) {
         UNREACHABLE("gen_asm: malformed program\n");
     }

@@ -155,6 +155,8 @@ patch instructions did in EoC. Hardest part rn is figuring out how to allocate h
 on scope. I think when I allocate homes, it'll probably do something intrusive to the AST and like
 mutate the env in each function block.
 
+Uh oh fucked up list. says it has a length of 5 but does it really?
+
 ==========Nice to have==========
 - Less questionable organization of code
 - Decent error messages
