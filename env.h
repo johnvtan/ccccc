@@ -12,6 +12,7 @@ typedef struct env {
     map_t *homes;
     list_t *children; // list of children environments
     struct env *parent;
+    int sp_offset;
 } env_t;
 
 env_t *env_new(env_t *parent);

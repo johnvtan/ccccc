@@ -9,6 +9,7 @@ static const reg_pair_t reg_pairs[] = {
     {.reg = REG_RAX, .string = "%rax"},
     {.reg = REG_RCX, .string = "%rcx"},
     {.reg = REG_AL, .string = "%al"},
+    {.reg = REG_RBP, .string = "%rbp"},
     {0, NULL},
 };
 
@@ -20,6 +21,7 @@ static char *reg_to_string(reg_t reg) {
         }
         i++;
     }
+    debug("reg_to_string failed: reg = %d\n", (int)reg);
     return NULL;
 }
 
@@ -86,7 +88,7 @@ static char *operand_to_string(operand_t operand) {
     if (operand.type == OPERAND_IMM) {
         snprintf(buf, 100, "$%ld", operand.imm);
     } else if (operand.type == OPERAND_MEM_LOC) {
-        snprintf(buf, 100, "$%ld(%s)", operand.mem.offset, reg_to_string(operand.mem.reg));
+        snprintf(buf, 100, "%ld(%s)", operand.mem.offset, reg_to_string(operand.mem.reg));
     }
     string_append(&string, buf, strlen(buf));
     return string_get(&string);

@@ -9,5 +9,6 @@ env_t *env_new(env_t *parent) {
     new_env->children = list_new();
     new_env->vars = list_new();
     new_env->homes = map_new();
+    new_env->sp_offset = 0;
     return new_env;
 }

@@ -92,6 +92,50 @@ static output_t *instr_i2r(opcode_t op, imm_t src, reg_t dst) {
     return out;
 }
 
+static output_t *instr_r2m(opcode_t op, reg_t src, mem_loc_t dst) {
+    if (op != OP_MOV) {
+        // TODO find instrs where this is illegal
+        UNREACHABLE("instr_r2m is only legal for MOV opcode for now\n");
+    }
+    output_t *out = malloc(sizeof(output_t)); 
+    out->instr.num_args = op_to_num_args(op);
+    if (out->instr.num_args != 2) {
+        UNREACHABLE("instr_r2m requires opcode that uses 2 args\n");
+    }
+
+    out->type = OUTPUT_INSTR;
+    out->instr.op = op;
+
+    out->instr.src.type = OPERAND_REG;
+    out->instr.src.reg = src;
+
+    out->instr.dst.type = OPERAND_MEM_LOC;
+    out->instr.dst.mem = dst;
+    return out;
+}
+
+static output_t *instr_m2r(opcode_t op, mem_loc_t src, reg_t dst) {
+    if (op != OP_MOV) {
+        // TODO find instrs where this is illegal
+        UNREACHABLE("instr_m2r is only legal for MOV opcode for now\n");
+    }
+    output_t *out = malloc(sizeof(output_t)); 
+    out->instr.num_args = op_to_num_args(op);
+    if (out->instr.num_args != 2) {
+        UNREACHABLE("instr_m2r requires opcode that uses 2 args\n");
+    }
+
+    out->type = OUTPUT_INSTR;
+    out->instr.op = op;
+
+    out->instr.src.type = OPERAND_MEM_LOC;
+    out->instr.src.mem = src;
+
+    out->instr.dst.type = OPERAND_REG;
+    out->instr.dst.reg = dst;
+    return out;
+}
+
 static output_t *instr_r(opcode_t op, reg_t src) {
     output_t *out = malloc(sizeof(output_t));
     if (!out)
@@ -365,17 +409,14 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env) {
 
     if (stmt->type == STMT_DECLARE) {
         debug("Found a declare statement\n");
-        UNREACHABLE("not yet implemented\n");
-        /*
         if (stmt->declare->init_expr) {
             list_concat(ret, expr_to_instrs(stmt->declare->init_expr, env));
-            var_t var;
-            var.name = stmt->declare->name;
-            var.type = stmt->declare->type;
-            //output_t *mov = instr_r2v(OP_MOV, REG_RAX, var);
-            //list_push(ret, mov);
+
+            // pretty jank
+            mem_loc_t *var_home = (var_t*)map_get(env->homes, stmt->declare->name);
+            output_t *mov = instr_r2m(OP_MOV, REG_RAX, *var_home);
+            list_push(ret, mov);
         }
-        */
         return ret;
     }
 
