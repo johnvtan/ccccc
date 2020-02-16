@@ -217,8 +217,11 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
     if (primary->type == PRIMARY_VAR) {
         // Do i just move the variable from its home to RAX?
         list_t *ret = list_new();
-        mem_loc_t *variable_home = map_get(env->homes, primary->var);
-        list_push(ret, instr_m2r(OP_MOV, *variable_home, REG_RAX));
+        var_t *var_info = map_get(env->homes, primary->var);
+        if (!var_info->declared) {
+            UNREACHABLE("Compilation error: variable referenced before declaration\n");
+        }
+        list_push(ret, instr_m2r(OP_MOV, var_info->home, REG_RAX));
         return ret;
     }
 
@@ -393,8 +396,8 @@ static list_t *assign_to_instrs(assign_t *assign, env_t *env) {
 
     list_t *ret = list_new();
     list_concat(ret, expr_to_instrs(assign->rhs, env));
-    mem_loc_t *variable_home = map_get(env->homes, assign->lhs->primary->var);
-    output_t *mov = instr_r2m(OP_MOV, REG_RAX, *variable_home);
+    var_t *var_info = map_get(env->homes, assign->lhs->primary->var);
+    output_t *mov = instr_r2m(OP_MOV, REG_RAX, var_info->home);
     list_push(ret, mov);
     return ret;
 }
@@ -443,13 +446,17 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
 
     if (stmt->type == STMT_DECLARE) {
         debug("Found a declare statement\n");
+        var_t *var_info = map_get(env->homes, stmt->declare->name);
+        if (var_info->declared) {
+            UNREACHABLE("Compilation error: variable has multiple definitions in the same scope");
+        }
+        var_info->declared = true;
         if (stmt->declare->init_expr) {
             list_t *ret = list_new();
             list_concat(ret, expr_to_instrs(stmt->declare->init_expr, env));
 
             // expr should be in rax, so move it to the variable home.
-            mem_loc_t *var_home = map_get(env->homes, stmt->declare->name);
-            output_t *mov = instr_r2m(OP_MOV, REG_RAX, *var_home);
+            output_t *mov = instr_r2m(OP_MOV, REG_RAX, var_info->home);
             list_push(ret, mov);
             return ret;
         }

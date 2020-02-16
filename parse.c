@@ -328,6 +328,7 @@ static declare_stmt_t *parse_declare_stmt(list_t *tokens, env_t *env) {
     var_t *new_var = malloc(sizeof(var_t));
     new_var->name = declare->name;
     new_var->type = declare->type;
+    new_var->declared = false;
     list_push(env->vars, new_var);
 
     list_pop(tokens);

@@ -1,6 +1,7 @@
 #ifndef AST_H
 #define AST_H
 
+#include <stdbool.h>
 #include "string.h"
 #include "list.h"
 #include "map.h"
@@ -20,6 +21,7 @@ typedef struct {
     builtin_type_t type;
     string_t *name;
     mem_loc_t home;
+    bool declared;
 } var_t;
 
 typedef struct {
