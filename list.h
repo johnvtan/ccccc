@@ -24,8 +24,7 @@ void *list_pop(list_t *list);
 void list_free(list_t *list);
 
 // This is not great but fine for now
-#define list_for_each(list, iterator, data_type, data_var) \
-    for (list_node_t *iterator = list->head->next, data_type *data_var = (data_type*)iterator->data;\
-         iterator;\
-         iterator = iterator->next, data_var = (data_type*)iterator->data)
+#define list_for_each(list, iterator) \
+    for (list_node_t *iterator = list->head->next; iterator != NULL; iterator = iterator->next)
+
 #endif

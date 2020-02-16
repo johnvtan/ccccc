@@ -417,7 +417,7 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
     return ret;
 }
 
-list_t *gen_asm(program_t *prog) {
+list_t *gen_asm(program_t *prog, env_t *global_env) {
     if (!prog || !prog->fn_defs)
         return NULL;
     debug("=====================Generating IR=====================\n");

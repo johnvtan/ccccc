@@ -8,5 +8,6 @@ env_t *env_new(env_t *parent) {
     new_env->parent = parent;
     new_env->children = list_new();
     new_env->vars = list_new();
+    new_env->homes = map_new();
     return new_env;
 }

@@ -3,6 +3,9 @@
 #include <assert.h>
 #include "compile.h"
 
+// From parse.c
+extern env_t *global_env;
+
 void usage(void) {
     printf("COMPILERBABY <filename>\n");
 }
@@ -32,8 +35,10 @@ int main(int argc, char **argv) {
      * TODO - do variable allocation here.
      */
     debug("Allocating variable homes...\n");
+    alloc_homes(global_env);
+
     debug("Generating asm...\n");
-    list_t *instrs = gen_asm(prog);
+    list_t *instrs = gen_asm(prog, global_env);
     if (!instrs || !instrs->len)
         return -1;
 

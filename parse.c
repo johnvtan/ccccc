@@ -1,6 +1,7 @@
 #include "compile.h"
 
-static env_t *global_env;
+// global - needed for home allocation
+env_t *global_env;
 static expr_t *parse_expr(list_t *tokens, env_t *env);
 
 // expect_next() consumes the token
@@ -324,6 +325,11 @@ static declare_stmt_t *parse_declare_stmt(list_t *tokens, env_t *env) {
     debug("parse_declare_stmt: Found variable %s\n", string_get(declare->name));
     // TODO do something with env and var
     //map_set(env->map, declare->name, &declare->type);
+    var_t *new_var = malloc(sizeof(var_t));
+    new_var->name = declare->name;
+    new_var->type = declare->type;
+    list_push(env->vars, new_var);
+
     list_pop(tokens);
     next = list_peek(tokens);
     if (next->type != TOK_SEMICOLON) {
@@ -450,6 +456,7 @@ program_t *parse(list_t *tokens) {
         //map_set(global_env.map, next_fn->name, &next_fn->ret_type);
         // TODO do something with function names?
         list_push(prog->fn_defs, next_fn);
+        list_push(global_env->children, next_fn->env);
     }
     return prog;
 }

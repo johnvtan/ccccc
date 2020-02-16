@@ -9,6 +9,7 @@
 // The list of children environments is useful for allocating homes.
 typedef struct env {
     list_t *vars;
+    map_t *homes;
     list_t *children; // list of children environments
     struct env *parent;
 } env_t;

@@ -1,7 +1,7 @@
 TARGET := COMPILERBABY
 CC := gcc
 CFLAGS := -Wall -Wextra
-DEBUGFLAGS := -g -O0
+DEBUGFLAGS := -g -O0 -DDEBUG
 
 SRCS := $(wildcard *.c)
 
