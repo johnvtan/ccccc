@@ -431,8 +431,8 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
         UNREACHABLE("stmt_to_instrs: stmt is invalid\n");
     }
 
-    list_t *ret = list_new();
     if (stmt->type == STMT_RETURN) {
+        list_t *ret = list_new();
         debug("Found return statement\n");
         list_t *expr_instrs = expr_to_instrs(stmt->ret->expr, env);
         list_concat(ret, expr_instrs);
@@ -444,17 +444,22 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
     if (stmt->type == STMT_DECLARE) {
         debug("Found a declare statement\n");
         if (stmt->declare->init_expr) {
+            list_t *ret = list_new();
             list_concat(ret, expr_to_instrs(stmt->declare->init_expr, env));
 
             // expr should be in rax, so move it to the variable home.
             mem_loc_t *var_home = map_get(env->homes, stmt->declare->name);
             output_t *mov = instr_r2m(OP_MOV, REG_RAX, *var_home);
             list_push(ret, mov);
+            return ret;
         }
-        return ret;
+        // TODO need better way of signalling that we don't want to add any instructions
+        // for this statement
+        return NULL;
     }
 
     if (stmt->type == STMT_EXPR) {
+        list_t *ret = list_new();
         debug("Found an expr statement\n");
         list_t *expr_instrs = expr_to_instrs(stmt->expr, env);
         if (!expr_instrs) {
@@ -491,10 +496,9 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
     stmt_t *curr_stmt = list_pop(fn_def->stmts);
     for (; curr_stmt; curr_stmt = list_pop(fn_def->stmts)) {
         list_t *stmt_instrs = stmt_to_instrs(curr_stmt, fn_def->env, epilogue_label);
-        if (!stmt_instrs) {
-            UNREACHABLE("fn_def_to_asm: null stmt_instrs\n");
+        if (stmt_instrs) {
+            list_concat(ret, stmt_instrs);
         }
-        list_concat(ret, stmt_instrs);
     }
 
     // function epilogue
