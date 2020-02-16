@@ -107,5 +107,4 @@ typedef struct {
     };
 } output_t;
 
-list_t *gen_asm(program_t *prog);
 #endif

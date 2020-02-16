@@ -1,6 +1,6 @@
 #include "compile.h"
 
-static env_t global_env;
+static env_t *global_env;
 static expr_t *parse_expr(list_t *tokens, env_t *env);
 
 // expect_next() consumes the token
@@ -322,7 +322,8 @@ static declare_stmt_t *parse_declare_stmt(list_t *tokens, env_t *env) {
     }
     declare->name = next->ident;
     debug("parse_declare_stmt: Found variable %s\n", string_get(declare->name));
-    map_set(env->map, declare->name, &declare->type);
+    // TODO do something with env and var
+    //map_set(env->map, declare->name, &declare->type);
     list_pop(tokens);
     next = list_peek(tokens);
     if (next->type != TOK_SEMICOLON) {
@@ -389,7 +390,7 @@ static fn_def_t *parse_fn_def(list_t *tokens) {
     fn_def_t *fn = malloc(sizeof(fn_def_t));
     fn->params = list_new();
     fn->stmts = list_new();
-    fn->env = env_new(&global_env);
+    fn->env = env_new(global_env);
 
     // first token should be a type
     token_t *curr = list_pop(tokens);
@@ -440,13 +441,14 @@ static fn_def_t *parse_fn_def(list_t *tokens) {
 program_t *parse(list_t *tokens) {
     program_t *prog = malloc(sizeof(program_t));
     prog->fn_defs = list_new();
-    global_env.map = map_new();
 
     // global environment is the outermost environment. Should contain all fn defs.
-    global_env.parent = NULL;
+    global_env = env_new(NULL);
+
     while (tokens->len) {
         fn_def_t *next_fn = parse_fn_def(tokens);
-        map_set(global_env.map, next_fn->name, &next_fn->ret_type);
+        //map_set(global_env.map, next_fn->name, &next_fn->ret_type);
+        // TODO do something with function names?
         list_push(prog->fn_defs, next_fn);
     }
     return prog;

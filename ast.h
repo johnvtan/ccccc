@@ -5,7 +5,7 @@
 #include "list.h"
 #include "map.h"
 #include "env.h"
-//#include "asm.h"
+#include "asm.h" // for mem_loc_t
 
 struct expr;
 typedef struct expr expr_t;

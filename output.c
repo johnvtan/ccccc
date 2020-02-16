@@ -75,7 +75,7 @@ static char *operand_to_string(operand_t operand) {
     }
 
     if (operand.type == OPERAND_VAR) {
-        return string_get(operand.var.name);
+        UNREACHABLE("VARs should not be in output\n");
     }
 
     string_t string;

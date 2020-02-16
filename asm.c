@@ -1,6 +1,5 @@
 #include "compile.h"
 
-static map_t *variable_homes;
 static list_t *expr_to_instrs(expr_t *expr, env_t *env);
 
 static int op_to_num_args(opcode_t op) {
@@ -93,87 +92,6 @@ static output_t *instr_i2r(opcode_t op, imm_t src, reg_t dst) {
     return out;
 }
 
-static output_t *instr_r2v(opcode_t op, reg_t src, var_t dst) {
-    output_t *out = malloc(sizeof(output_t));
-    if (!out)
-        return NULL;
-
-    out->instr.num_args = op_to_num_args(op);
-    if (out->instr.num_args != 2)
-        return NULL;
-
-    out->type = OUTPUT_INSTR;
-    out->instr.op = op;
-
-    out->instr.src.type = OPERAND_REG;
-    out->instr.src.reg = src;
-
-    out->instr.dst.type = OPERAND_VAR;
-    out->instr.dst.var = dst;
-    return out;
-}
-
-static output_t *instr_v2r(opcode_t op, var_t src, reg_t dst) {
-    output_t *out = malloc(sizeof(output_t));
-    if (!out)
-        return NULL;
-
-    out->instr.num_args = op_to_num_args(op);
-    if (out->instr.num_args != 2)
-        return NULL;
-
-    out->type = OUTPUT_INSTR;
-    out->instr.op = op;
-
-    out->instr.src.type = OPERAND_VAR;
-    out->instr.src.var = src;
-
-    out->instr.dst.type = OPERAND_REG;
-    out->instr.dst.reg = dst;
-    return out;
-}
-
-// For IR
-static output_t *instr_v2v(opcode_t op, var_t src, var_t dst) {
-    output_t *out = malloc(sizeof(output_t));
-    if (!out)
-        return NULL;
-
-    out->instr.num_args = op_to_num_args(op);
-    if (out->instr.num_args != 2)
-        return NULL;
-
-    out->type = OUTPUT_INSTR;
-    out->instr.op = op;
-
-    out->instr.src.type = OPERAND_VAR;
-    out->instr.src.var = src;
-
-    out->instr.dst.type = OPERAND_VAR;
-    out->instr.dst.var = dst;
-    return out;
-}
-
-static output_t *instr_i2v(opcode_t op, imm_t src, var_t dst) {
-    output_t *out = malloc(sizeof(output_t));
-    if (!out)
-        return NULL;
-
-    out->instr.num_args = op_to_num_args(op);
-    if (out->instr.num_args != 2)
-        return NULL;
-
-    out->type = OUTPUT_INSTR;
-    out->instr.op = op;
-
-    out->instr.src.type = OPERAND_IMM;
-    out->instr.src.imm = src;
-
-    out->instr.dst.type = OPERAND_VAR;
-    out->instr.dst.var = dst;
-    return out;
-}
-
 static output_t *instr_r(opcode_t op, reg_t src) {
     output_t *out = malloc(sizeof(output_t));
     if (!out)
@@ -188,23 +106,6 @@ static output_t *instr_r(opcode_t op, reg_t src) {
 
     out->instr.src.type = OPERAND_REG;
     out->instr.src.reg = src;
-    return out;
-}
-
-static output_t *instr_v(opcode_t op, var_t src) {
-    output_t *out = malloc(sizeof(output_t));
-    if (!out)
-        return NULL;
-
-    out->instr.num_args = op_to_num_args(op);
-    if (out->instr.num_args != 1)
-        return NULL;
-
-    out->type = OUTPUT_INSTR;
-    out->instr.op = op;
-
-    out->instr.src.type = OPERAND_VAR;
-    out->instr.src.var = src;
     return out;
 }
 
@@ -255,15 +156,6 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
 
     if (primary->type == PRIMARY_EXPR) {
         return expr_to_instrs(primary->expr, env);
-    }
-
-    if (primary->type == PRIMARY_VAR) {
-        list_t *ret = list_new();
-        var_t var;
-        var.name = primary->var;
-        var.type = *(builtin_type_t*)map_get(env->map, var.name);
-        list_push(ret, instr_v2r(OP_MOV, var, REG_RAX));
-        return ret;
     }
 
     UNREACHABLE("Unexpected primary expr\n");
@@ -473,14 +365,17 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env) {
 
     if (stmt->type == STMT_DECLARE) {
         debug("Found a declare statement\n");
+        UNREACHABLE("not yet implemented\n");
+        /*
         if (stmt->declare->init_expr) {
             list_concat(ret, expr_to_instrs(stmt->declare->init_expr, env));
             var_t var;
             var.name = stmt->declare->name;
             var.type = stmt->declare->type;
-            output_t *mov = instr_r2v(OP_MOV, REG_RAX, var);
-            list_push(ret, mov);
+            //output_t *mov = instr_r2v(OP_MOV, REG_RAX, var);
+            //list_push(ret, mov);
         }
+        */
         return ret;
     }
 
@@ -526,7 +421,6 @@ list_t *gen_asm(program_t *prog) {
     if (!prog || !prog->fn_defs)
         return NULL;
     debug("=====================Generating IR=====================\n");
-    variable_homes = map_new();
     list_t *output = list_new();
     fn_def_t *fn_def = list_pop(prog->fn_defs);
     for (; fn_def; fn_def = list_pop(prog->fn_defs)) {
