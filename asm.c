@@ -202,6 +202,14 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
         return expr_to_instrs(primary->expr, env);
     }
 
+    if (primary->type == PRIMARY_VAR) {
+        // Do i just move the variable from its home to RAX?
+        list_t *ret = list_new();
+        mem_loc_t *variable_home = map_get(env->homes, primary->var);
+        list_push(ret, instr_m2r(OP_MOV, *variable_home, REG_RAX));
+        return ret;
+    }
+
     UNREACHABLE("Unexpected primary expr\n");
     return NULL;
 }
@@ -412,7 +420,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env) {
         if (stmt->declare->init_expr) {
             list_concat(ret, expr_to_instrs(stmt->declare->init_expr, env));
 
-            // pretty jank
+            // expr should be in rax, so move it to the variable home.
             mem_loc_t *var_home = (var_t*)map_get(env->homes, stmt->declare->name);
             output_t *mov = instr_r2m(OP_MOV, REG_RAX, *var_home);
             list_push(ret, mov);
