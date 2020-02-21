@@ -218,6 +218,7 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
         // Do i just move the variable from its home to RAX?
         list_t *ret = list_new();
         var_t *var_info = map_get(env->homes, primary->var);
+        debug("Got primary var: %s\n", string_get(primary->var));
         if (!var_info->declared) {
             UNREACHABLE("Compilation error: variable referenced before declaration\n");
         }
@@ -391,6 +392,9 @@ static list_t *assign_to_instrs(assign_t *assign, env_t *env) {
     list_t *ret = list_new();
     list_concat(ret, expr_to_instrs(assign->rhs, env));
     var_t *var_info = map_get(env->homes, assign->lhs->primary->var);
+    if (!var_info->declared) {
+        UNREACHABLE("assign_to_instrs: variable is used before declaration");
+    }
     output_t *mov = instr_r2m(OP_MOV, REG_RAX, var_info->home);
     list_push(ret, mov);
     return ret;
@@ -444,6 +448,8 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
         if (var_info->declared) {
             UNREACHABLE("Compilation error: variable has multiple definitions in the same scope");
         }
+
+        debug("Set declared for var\n");
         var_info->declared = true;
         if (stmt->declare->init_expr) {
             list_t *ret = list_new();
