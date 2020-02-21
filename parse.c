@@ -427,6 +427,8 @@ static fn_def_t *parse_fn_def(list_t *tokens) {
     expect_next(tokens, TOK_CLOSE_PAREN);
     expect_next(tokens, TOK_OPEN_BRACE);
 
+    bool return_stmt_found = false;
+
     // parse the statements one by one until we find the closed brace
     while ((curr = list_peek(tokens)) && curr->type != TOK_CLOSE_BRACE) {
         stmt_t *stmt = parse_stmt(tokens, fn->env); 
@@ -437,6 +439,23 @@ static fn_def_t *parse_fn_def(list_t *tokens) {
          *     assert(stmt->expr->type == fn->ret_type);
          * }
          */
+        if (stmt->type == STMT_RETURN) {
+            return_stmt_found = true;
+        }
+        list_push(fn->stmts, stmt);
+    }
+
+    if (!return_stmt_found) {
+        // return 0 if no return statement found.
+        // Hacky way to do this is to just generate a return statement here that returns 0.
+        stmt_t *stmt = malloc(sizeof(stmt_t));
+        stmt->type = STMT_RETURN;
+        stmt->ret = malloc(sizeof(return_stmt_t));
+        stmt->ret->expr = malloc(sizeof(expr_t));
+        stmt->ret->expr->type = PRIMARY;
+        stmt->ret->expr->primary = malloc(sizeof(primary_t));
+        stmt->ret->expr->primary->type = PRIMARY_INT;
+        stmt->ret->expr->primary->integer = 0;
         list_push(fn->stmts, stmt);
     }
 

@@ -241,20 +241,14 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
     } 
 
     if (unary->op == UNARY_LOGICAL_NEG) {
-        output_t *cmp = instr_i2r(OP_CMP, 0, REG_RAX);
-        list_push(ret, cmp);
-
-        output_t *mov = instr_i2r(OP_MOV, 0, REG_RAX);
-        list_push(ret, mov);
-
-        output_t *sete = instr_r(OP_SETE, REG_AL);
-        list_push(ret, sete);
+        list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
+        list_push(ret, instr_i2r(OP_MOV, 0, REG_RAX));
+        list_push(ret, instr_r(OP_SETE, REG_AL));
         return ret;
     }
 
     if (unary->op == UNARY_BITWISE_COMP) {
-        output_t *not = instr_r(OP_NOT, REG_RAX);
-        list_push(ret, not);
+        list_push(ret, instr_r(OP_NOT, REG_RAX));
         return ret;
     }
 
