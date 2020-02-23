@@ -3,6 +3,13 @@
 env_t *global_env;
 static expr_t *parse_expr(list_t *tokens, env_t *env);
 
+// for now, only idents can be used in assign statements
+// Later we want this to check for specific unary ops, like pointer derefs and pre/postinc and array
+// refs
+static bool is_valid_lhs(expr_t *expr) {
+    return expr && expr->type == PRIMARY && expr->primary->type == PRIMARY_VAR;
+}
+
 // expect_next() consumes the token
 // TODO better error handling stuff
 static token_t *expect_next(list_t *tokens, token_type_t expectation) {
@@ -75,7 +82,8 @@ static expr_t *parse_primary(list_t *tokens, env_t *env) {
 
     if (curr->type == TOK_INT_LIT) {
         debug("Found integer literal: %d\n", curr->int_literal);
-        expr->primary->integer = curr->int_literal; expr->primary->type = PRIMARY_INT;
+        expr->primary->integer = curr->int_literal;
+        expr->primary->type = PRIMARY_INT;
         return expr;
     }
 
@@ -147,15 +155,25 @@ static expr_t *parse_unary(list_t *tokens, env_t *env) {
     }
 
     if (curr->type == TOK_INCREMENT) {
-        UNREACHABLE("Found preincrement\n");
+        debug("Found preincrement\n");
         list_pop(tokens);
-        return new_unary_expr(UNARY_PREINC, parse_unary(tokens, env));
+        expr_t *lhs = parse_expr(tokens, env);
+        if (!is_valid_lhs(lhs)) {
+            UNREACHABLE("Compile error: invalid lhs for preincrement operator\n");
+        }
+        expr_t *int_1= malloc(sizeof(expr_t));
+        int_1->type = PRIMARY;
+        int_1->primary = malloc(sizeof(primary_t));
+        int_1->primary->type = PRIMARY_INT;
+        int_1->primary->integer = 1;
+        expr_t *rhs = new_bin_expr(BIN_ADD, lhs, int_1);
+        return new_assign(lhs, rhs);
     }
 
     if (curr->type == TOK_DECREMENT) {
         UNREACHABLE("Found predecrement\n");
         list_pop(tokens);
-        return new_unary_expr(UNARY_PREDEC, parse_unary(tokens, env));
+        //return new_unary_expr(UNARY_PREDEC, parse_unary(tokens, env));
     }
 
     //return parse_primary(tokens, env);
@@ -281,13 +299,6 @@ static expr_t *parse_logical_or(list_t *tokens, env_t *env) {
         }
     }
     return ret;
-}
-
-// for now, only idents can be used in assign statements
-// Later we want this to check for specific unary ops, like pointer derefs and pre/postinc and array
-// refs
-static bool is_valid_lhs(expr_t *expr) {
-    return expr && expr->type == PRIMARY && expr->primary->type == PRIMARY_VAR;
 }
 
 // Handles += as well as =
