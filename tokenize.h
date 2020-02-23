@@ -38,6 +38,8 @@ typedef enum token_type {
     TOK_MINUS,
     TOK_TILDE,
     TOK_BANG,
+    TOK_INCREMENT,
+    TOK_DECREMENT,
 
     TOK_AND,
     TOK_OR,
@@ -47,6 +49,9 @@ typedef enum token_type {
     TOK_LTE,
     TOK_GT,
     TOK_GTE,
+
+    // += is its own token
+    TOK_PLUS_EQ,
 } token_type_t;
 
 typedef struct token {

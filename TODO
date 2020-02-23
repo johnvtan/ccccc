@@ -157,6 +157,10 @@ mutate the env in each function block.
 
 Uh oh fucked up list. says it has a length of 5 but does it really?
 
+IMPLEMENTING PRE/POSTINC:
+how am I going to tell if its a postinc operator?
+is it unary? it's also an assign. Can I expand it out to be an assignment expression?
+
 ==========Nice to have==========
 - Less questionable organization of code
 - Decent error messages

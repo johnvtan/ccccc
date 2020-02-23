@@ -1,5 +1,4 @@
 #include "compile.h"
-
 // global - needed for home allocation
 env_t *global_env;
 static expr_t *parse_expr(list_t *tokens, env_t *env);
@@ -59,6 +58,15 @@ static expr_t *new_unary_expr(enum unary_op op, expr_t *inner) {
     return expr;
 }
 
+static expr_t *new_assign(expr_t *lhs, expr_t *rhs) {
+   expr_t *ret = malloc(sizeof(expr_t)); 
+   ret->type = ASSIGN;
+   ret->assign = malloc(sizeof(assign_t));
+   ret->assign->lhs = lhs;
+   ret->assign->rhs = rhs;
+   return ret;
+}
+
 static expr_t *parse_primary(list_t *tokens, env_t *env) {
     token_t *curr = list_pop(tokens);
     expr_t *expr = malloc(sizeof(expr_t));
@@ -97,9 +105,27 @@ static expr_t *parse_primary(list_t *tokens, env_t *env) {
     return NULL;
 }
 
+static expr_t *parse_postfix(list_t *tokens, env_t *env) {
+    if (!tokens || !tokens->len) {
+        UNREACHABLE("wtf you doin\n");
+    }
+
+    token_t *curr = list_peek(tokens);
+    if (curr->type == TOK_INCREMENT) {
+        UNREACHABLE("increment unimplemented\n");
+    }
+
+    if (curr->type == TOK_DECREMENT) {
+        UNREACHABLE("decrement unimplemented\n");
+    }
+
+    return parse_primary(tokens, env);
+}
+
 static expr_t *parse_unary(list_t *tokens, env_t *env) {
-    if (!tokens || !tokens->len)
-        return NULL;
+    if (!tokens || !tokens->len) {
+        UNREACHABLE("wtf you doin\n");
+    }
 
     token_t *curr = list_peek(tokens);
     if (curr->type == TOK_BANG) {
@@ -120,7 +146,21 @@ static expr_t *parse_unary(list_t *tokens, env_t *env) {
         return new_unary_expr(UNARY_MATH_NEG, parse_unary(tokens, env));
     }
 
-    return parse_primary(tokens, env);
+    if (curr->type == TOK_INCREMENT) {
+        UNREACHABLE("Found preincrement\n");
+        list_pop(tokens);
+        return new_unary_expr(UNARY_PREINC, parse_unary(tokens, env));
+    }
+
+    if (curr->type == TOK_DECREMENT) {
+        UNREACHABLE("Found predecrement\n");
+        list_pop(tokens);
+        return new_unary_expr(UNARY_PREDEC, parse_unary(tokens, env));
+    }
+
+    //return parse_primary(tokens, env);
+    // Thanks 9cc
+    return parse_postfix(tokens, env);
 }
 
 static expr_t *parse_mul_div(list_t *tokens, env_t *env) {
@@ -267,6 +307,7 @@ static bool is_valid_lhs(expr_t *expr) {
     return expr && expr->type == PRIMARY && expr->primary->type == PRIMARY_VAR;
 }
 
+// Handles += as well as =
 static expr_t *parse_assign(list_t *tokens, env_t *env) {
     expr_t *maybe_lhs = parse_logical_or(tokens, env);
     if (!is_valid_lhs(maybe_lhs)) {
@@ -274,28 +315,23 @@ static expr_t *parse_assign(list_t *tokens, env_t *env) {
         return maybe_lhs;
     }
     // here we might have an assignment statement
+    // we have a valid lhs at least
     debug("parse_assign: Maybe an assign\n");
     token_t *next = list_peek(tokens);
-    if (next->type != TOK_ASSIGN) {
-        debug("parse_assign: Didn't find an equals sign, so returning\n");
-        return maybe_lhs;
+    if (next->type == TOK_ASSIGN) {
+        // ok cool we got an assignment statement
+        debug("parse_assign: I think we got an assignment statement\n");
+        list_pop(tokens);
+        expr_t *rhs = parse_expr(tokens, env);
+        return new_assign(maybe_lhs, rhs);
     }
 
-    // ok cool we got an assignment statement
-    debug("parse_assign: I think we got an assignment statement\n");
-    list_pop(tokens);
-    expr_t *rhs = parse_expr(tokens, env);
-    if (!rhs) {
-        debug("parse_assign: Bad rhs, returning null\n");
-        return NULL;
+    if (next->type == TOK_PLUS_EQ) {
+        UNREACHABLE("+= unhandled\n");
     }
 
-    expr_t *ret = malloc(sizeof(expr_t)); 
-    ret->type = ASSIGN;
-    ret->assign = malloc(sizeof(assign_t));
-    ret->assign->lhs = maybe_lhs;
-    ret->assign->rhs = rhs;
-    return ret;
+    debug("parse_assign: Didn't actually get an assignment :(\n");
+    return maybe_lhs;
 }
 
 static expr_t *parse_expr(list_t *tokens, env_t *env) {

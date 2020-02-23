@@ -29,6 +29,12 @@ typedef struct {
         UNARY_MATH_NEG,
         UNARY_BITWISE_COMP,
         UNARY_LOGICAL_NEG,
+
+        // TODO do these go here?
+        UNARY_PREINC,
+        UNARY_POSTINC,
+        UNARY_PREDEC,
+        UNARY_POSTDEC,
     } op;
     expr_t *expr;
 } unary_expr_t;

@@ -10,7 +10,7 @@ typedef struct {
     token_type_t type;
 } special_char_pair_t;
 
-static keyword_pair_t keywords[] = {
+static const keyword_pair_t keywords[] = {
     {"return", TOK_RETURN},
     {"int", TOK_INT_TYPE},
     {"char", TOK_CHAR_TYPE},
@@ -21,10 +21,13 @@ static keyword_pair_t keywords[] = {
     {"!=", TOK_NE},
     {"<=", TOK_LTE},
     {">=", TOK_GTE},
+    {"++", TOK_INCREMENT},
+    {"--", TOK_DECREMENT},
+    {"+=", TOK_PLUS_EQ},
     {NULL, 0},
 };
 
-static special_char_pair_t special_chars[] = {
+static const special_char_pair_t special_chars[] = {
     {'+', TOK_PLUS},
     {'-', TOK_MINUS},
     {'*', TOK_MULT},
@@ -165,8 +168,13 @@ list_t *tokenize(string_t *input) {
 
         advance = keyword(buf, curr_token);
         if (advance > 0) {
-            char next = *(buf + advance);
-            if (!is_whitespace(next) && next != ';') {
+            char next_char = *(buf + advance);
+            // TODO how to make this less hacky?
+            if (curr_token->type != TOK_INCREMENT
+                && curr_token->type != TOK_DECREMENT
+                && curr_token->type != TOK_PLUS_EQ
+                && !is_whitespace(next_char)
+                && next_char != ';') {
                 printf("Bad input program: malformed keyword\n");
                 exit(-1);
             }
