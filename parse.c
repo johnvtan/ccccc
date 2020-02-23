@@ -166,9 +166,6 @@ static expr_t *parse_unary(list_t *tokens, env_t *env) {
 static expr_t *parse_mul_div(list_t *tokens, env_t *env) {
     expr_t *ret = parse_unary(tokens, env);
 
-    if (!ret)
-        return NULL;
-
     token_t *curr = list_peek(tokens);
     while ((curr = list_peek(tokens)) && curr) {
         if (curr->type == TOK_MULT) {
@@ -189,9 +186,6 @@ static expr_t *parse_mul_div(list_t *tokens, env_t *env) {
 static expr_t *parse_add_sub(list_t *tokens, env_t *env) {
     expr_t *ret = parse_mul_div(tokens, env);
 
-    if (!ret)
-        return NULL;
-
     token_t *curr;
     while ((curr = list_peek(tokens)) && curr) {
         if (curr->type == TOK_PLUS) {
@@ -211,8 +205,6 @@ static expr_t *parse_add_sub(list_t *tokens, env_t *env) {
 
 static expr_t *parse_relational(list_t *tokens, env_t *env) {
     expr_t *ret = parse_add_sub(tokens, env);
-    if (!ret)
-        return NULL;
 
     token_t *curr;
     while ((curr = list_peek(tokens)) && curr) {
@@ -242,9 +234,6 @@ static expr_t *parse_relational(list_t *tokens, env_t *env) {
 static expr_t *parse_equality(list_t *tokens, env_t *env) {
     expr_t *ret = parse_relational(tokens, env);
 
-    if (!ret)
-        return NULL;
-
     token_t *curr;
     while ((curr = list_peek(tokens)) && curr) {
         if (curr->type == TOK_NE) {
@@ -265,9 +254,6 @@ static expr_t *parse_equality(list_t *tokens, env_t *env) {
 static expr_t *parse_logical_and(list_t *tokens, env_t *env) {
     expr_t *ret = parse_equality(tokens, env);
 
-    if (!ret)
-        return NULL;
-
     token_t *curr;
     while ((curr = list_peek(tokens)) && curr) {
         if (curr->type == TOK_AND) {
@@ -283,9 +269,6 @@ static expr_t *parse_logical_and(list_t *tokens, env_t *env) {
 
 static expr_t *parse_logical_or(list_t *tokens, env_t *env) {
     expr_t *ret = parse_logical_and(tokens, env);
-
-    if (!ret)
-        return NULL;
 
     token_t *curr;
     while ((curr = list_peek(tokens)) && curr) {
@@ -332,6 +315,13 @@ static expr_t *parse_assign(list_t *tokens, env_t *env) {
 
         // plus equals means that lhs = lhs + remaining expr 
         expr_t *rhs = new_bin_expr(BIN_ADD, maybe_lhs, parse_expr(tokens, env));
+        return new_assign(maybe_lhs, rhs);
+    }
+
+    if (next->type == TOK_MINUS_EQ) {
+        debug("parse_assign: Got minus equals assignment statement\n");
+        list_pop(tokens);
+        expr_t *rhs = new_bin_expr(BIN_SUB, maybe_lhs, parse_expr(tokens, env));
         return new_assign(maybe_lhs, rhs);
     }
 

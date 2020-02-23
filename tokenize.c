@@ -24,6 +24,7 @@ static const keyword_pair_t keywords[] = {
     {"++", TOK_INCREMENT},
     {"--", TOK_DECREMENT},
     {"+=", TOK_PLUS_EQ},
+    {"-=", TOK_MINUS_EQ},
     {NULL, 0},
 };
 
@@ -173,6 +174,7 @@ list_t *tokenize(string_t *input) {
             if (curr_token->type != TOK_INCREMENT
                 && curr_token->type != TOK_DECREMENT
                 && curr_token->type != TOK_PLUS_EQ
+                && curr_token->type != TOK_MINUS_EQ
                 && !is_whitespace(next_char)
                 && next_char != ';') {
                 printf("Bad input program: malformed keyword\n");

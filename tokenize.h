@@ -52,6 +52,7 @@ typedef enum token_type {
 
     // += is its own token
     TOK_PLUS_EQ,
+    TOK_MINUS_EQ,
 } token_type_t;
 
 typedef struct token {
