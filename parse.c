@@ -74,39 +74,68 @@ static expr_t *new_assign(expr_t *lhs, expr_t *rhs) {
    return ret;
 }
 
-static expr_t *parse_primary(list_t *tokens, env_t *env) {
-    token_t *curr = list_pop(tokens);
+static expr_t *new_primary_int(int val) {
     expr_t *expr = malloc(sizeof(expr_t));
     expr->type = PRIMARY;
     expr->primary = malloc(sizeof(primary_t));
+    expr->primary->type = PRIMARY_INT;
+    expr->primary->integer = val;
+    return expr;
+}
+
+static expr_t *new_primary_char(char c) {
+    expr_t *expr = malloc(sizeof(expr_t));
+    expr->type = PRIMARY;
+    expr->primary = malloc(sizeof(primary_t));
+    expr->primary->type = PRIMARY_CHAR;
+    expr->primary->integer = c;
+    return expr;
+}
+
+static expr_t *new_primary_var(string_t *var) {
+    if (!var) {
+        UNREACHABLE("new_primary_var: invalid var\n");
+    }
+    expr_t *expr = malloc(sizeof(expr_t));
+    expr->type = PRIMARY;
+    expr->primary = malloc(sizeof(primary_t));
+    expr->primary->type = PRIMARY_VAR;
+    expr->primary->var = var;
+    return expr;
+}
+
+static expr_t *new_primary_expr(expr_t *e) {
+    expr_t *expr = malloc(sizeof(expr_t));
+    expr->type = PRIMARY;
+    expr->primary = malloc(sizeof(primary_t));
+    expr->primary->type = PRIMARY_EXPR;
+    expr->primary->expr = e;
+    return expr;
+}
+
+static expr_t *parse_primary(list_t *tokens, env_t *env) {
+    token_t *curr = list_pop(tokens);
 
     if (curr->type == TOK_INT_LIT) {
         debug("Found integer literal: %d\n", curr->int_literal);
-        expr->primary->integer = curr->int_literal;
-        expr->primary->type = PRIMARY_INT;
-        return expr;
+        return new_primary_int(curr->int_literal);
     }
 
     if (curr->type == TOK_CHAR_LIT) {
         debug("Found character literal\n");
-        expr->primary->character = curr->char_literal;
-        expr->primary->type = PRIMARY_CHAR;
-        return expr;
+        return new_primary_char(curr->char_literal);
     }
 
     if (curr->type == TOK_IDENT) {
         debug("Found identifier: %s\n", string_get(curr->ident));
-        expr->primary->var = curr->ident;
-        expr->primary->type = PRIMARY_VAR;
-        return expr;
+        return new_primary_var(curr->ident);
     }
 
     if (curr->type == TOK_OPEN_PAREN) {
         debug("Found nested expr\n");
-        expr->primary->type = PRIMARY_EXPR;
-        expr->primary->expr = parse_expr(tokens, env);
+        expr_t *expr = parse_expr(tokens, env);
         expect_next(tokens, TOK_CLOSE_PAREN);
-        return expr;
+        return new_primary_expr(expr);
     }
 
     UNREACHABLE("Error parsing expected primary expression\n");
@@ -161,19 +190,19 @@ static expr_t *parse_unary(list_t *tokens, env_t *env) {
         if (!is_valid_lhs(lhs)) {
             UNREACHABLE("Compile error: invalid lhs for preincrement operator\n");
         }
-        expr_t *int_1= malloc(sizeof(expr_t));
-        int_1->type = PRIMARY;
-        int_1->primary = malloc(sizeof(primary_t));
-        int_1->primary->type = PRIMARY_INT;
-        int_1->primary->integer = 1;
-        expr_t *rhs = new_bin_expr(BIN_ADD, lhs, int_1);
+        expr_t *rhs = new_bin_expr(BIN_ADD, lhs, new_primary_int(1));
         return new_assign(lhs, rhs);
     }
 
     if (curr->type == TOK_DECREMENT) {
-        UNREACHABLE("Found predecrement\n");
+        debug("Found predecrement\n");
         list_pop(tokens);
-        //return new_unary_expr(UNARY_PREDEC, parse_unary(tokens, env));
+        expr_t *lhs = parse_expr(tokens, env);
+        if (!is_valid_lhs(lhs)) {
+            UNREACHABLE("Compile error: invalid lhs for preincrement operator\n");
+        }
+        expr_t *rhs = new_bin_expr(BIN_SUB, lhs, new_primary_int(1));
+        return new_assign(lhs, rhs);
     }
 
     //return parse_primary(tokens, env);
