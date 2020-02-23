@@ -147,16 +147,31 @@ static expr_t *parse_postfix(list_t *tokens, env_t *env) {
         UNREACHABLE("wtf you doin\n");
     }
 
+    expr_t *primary_expr = parse_primary(tokens, env);
+    if (!tokens->len) {
+        UNREACHABLE("compile error? should at least be a semicolon here\n");
+    }
+
     token_t *curr = list_peek(tokens);
     if (curr->type == TOK_INCREMENT) {
-        UNREACHABLE("increment unimplemented\n");
+        debug("Found postinc\n");
+        if (!is_valid_lhs(primary_expr)) {
+            UNREACHABLE("compile error: trying to postinc invalid lhs\n");
+        }
+        list_pop(tokens);
+        return new_unary_expr(UNARY_POSTINC, primary_expr);
     }
 
     if (curr->type == TOK_DECREMENT) {
-        UNREACHABLE("decrement unimplemented\n");
+        debug("Found postdec\n");
+        if (!is_valid_lhs(primary_expr)) {
+            UNREACHABLE("compile error: trying to postdec invalid lhs\n");
+        }
+        list_pop(tokens);
+        return new_unary_expr(UNARY_POSTDEC, primary_expr);
     }
 
-    return parse_primary(tokens, env);
+    return primary_expr;
 }
 
 static expr_t *parse_unary(list_t *tokens, env_t *env) {
@@ -186,7 +201,7 @@ static expr_t *parse_unary(list_t *tokens, env_t *env) {
     if (curr->type == TOK_INCREMENT) {
         debug("Found preincrement\n");
         list_pop(tokens);
-        expr_t *lhs = parse_expr(tokens, env);
+        expr_t *lhs = parse_unary(tokens, env);
         if (!is_valid_lhs(lhs)) {
             UNREACHABLE("Compile error: invalid lhs for preincrement operator\n");
         }
@@ -197,15 +212,15 @@ static expr_t *parse_unary(list_t *tokens, env_t *env) {
     if (curr->type == TOK_DECREMENT) {
         debug("Found predecrement\n");
         list_pop(tokens);
-        expr_t *lhs = parse_expr(tokens, env);
+        expr_t *lhs = parse_unary(tokens, env);
         if (!is_valid_lhs(lhs)) {
-            UNREACHABLE("Compile error: invalid lhs for preincrement operator\n");
+            debug("lhs type: %d\n", (int)lhs->type);
+            UNREACHABLE("Compile error: invalid lhs for predecrement operator\n");
         }
         expr_t *rhs = new_bin_expr(BIN_SUB, lhs, new_primary_int(1));
         return new_assign(lhs, rhs);
     }
 
-    //return parse_primary(tokens, env);
     // Thanks 9cc
     return parse_postfix(tokens, env);
 }

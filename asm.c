@@ -253,6 +253,14 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
         return ret;
     }
 
+    if (unary->op == UNARY_POSTINC) {
+        UNREACHABLE("asm postinc not implemented\n");
+    }
+
+    if (unary->op == UNARY_POSTDEC) {
+        UNREACHABLE("asm postdec not implemented\n");
+    }
+
     UNREACHABLE("unexpected unary expr\n");
     return NULL;
 }
