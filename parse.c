@@ -320,14 +320,19 @@ static expr_t *parse_assign(list_t *tokens, env_t *env) {
     token_t *next = list_peek(tokens);
     if (next->type == TOK_ASSIGN) {
         // ok cool we got an assignment statement
-        debug("parse_assign: I think we got an assignment statement\n");
+        debug("parse_assign: got an assignment statement\n");
         list_pop(tokens);
         expr_t *rhs = parse_expr(tokens, env);
         return new_assign(maybe_lhs, rhs);
     }
 
     if (next->type == TOK_PLUS_EQ) {
-        UNREACHABLE("+= unhandled\n");
+        debug("parse_assign: Got plus equals assignment statement\n");
+        list_pop(tokens);
+
+        // plus equals means that lhs = lhs + remaining expr 
+        expr_t *rhs = new_bin_expr(BIN_ADD, maybe_lhs, parse_expr(tokens, env));
+        return new_assign(maybe_lhs, rhs);
     }
 
     debug("parse_assign: Didn't actually get an assignment :(\n");
