@@ -97,10 +97,6 @@ static output_t *instr_i2r(opcode_t op, imm_t src, reg_t dst) {
 }
 
 static output_t *instr_r2m(opcode_t op, reg_t src, mem_loc_t dst) {
-    if (op != OP_MOV) {
-        // TODO find instrs where this is illegal
-        UNREACHABLE("instr_r2m is only legal for MOV opcode for now\n");
-    }
     output_t *out = malloc(sizeof(output_t)); 
     out->instr.num_args = op_to_num_args(op);
     if (out->instr.num_args != 2) {
@@ -112,6 +108,24 @@ static output_t *instr_r2m(opcode_t op, reg_t src, mem_loc_t dst) {
 
     out->instr.src.type = OPERAND_REG;
     out->instr.src.reg = src;
+
+    out->instr.dst.type = OPERAND_MEM_LOC;
+    out->instr.dst.mem = dst;
+    return out;
+}
+
+static output_t *instr_i2m(opcode_t op, imm_t src, mem_loc_t dst) {
+    output_t *out = malloc(sizeof(output_t)); 
+    out->instr.num_args = op_to_num_args(op);
+    if (out->instr.num_args != 2) {
+        UNREACHABLE("instr_r2m requires opcode that uses 2 args\n");
+    }
+
+    out->type = OUTPUT_INSTR;
+    out->instr.op = op;
+
+    out->instr.src.type = OPERAND_IMM;
+    out->instr.src.imm = src;
 
     out->instr.dst.type = OPERAND_MEM_LOC;
     out->instr.dst.mem = dst;
@@ -254,11 +268,21 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
     }
 
     if (unary->op == UNARY_POSTINC) {
-        UNREACHABLE("asm postinc not implemented\n");
+        var_t *var_info = map_get(env->homes, unary->expr->primary->var);
+        if (!var_info->declared) {
+            UNREACHABLE("assign_to_instrs: variable is used before declaration");
+        }
+        list_push(ret, instr_i2m(OP_ADD, 1, var_info->home));
+        return ret;
     }
 
     if (unary->op == UNARY_POSTDEC) {
-        UNREACHABLE("asm postdec not implemented\n");
+        var_t *var_info = map_get(env->homes, unary->expr->primary->var);
+        if (!var_info->declared) {
+            UNREACHABLE("assign_to_instrs: variable is used before declaration");
+        }
+        list_push(ret, instr_i2m(OP_SUB, 1, var_info->home));
+        return ret;
     }
 
     UNREACHABLE("unexpected unary expr\n");
