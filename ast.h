@@ -10,6 +10,7 @@
 
 struct expr;
 typedef struct expr expr_t;
+typedef struct stmt stmt_t;
 
 typedef enum {
     TYPE_UNRECOGNIZED,
@@ -38,8 +39,7 @@ typedef struct {
 typedef struct {
     enum bin_op {
         BIN_ADD,
-        BIN_SUB,
-        BIN_MUL,
+        BIN_SUB, BIN_MUL,
         BIN_DIV,
         BIN_LT,
         BIN_GT,
@@ -93,6 +93,11 @@ typedef struct expr {
 } expr_t;
 
 typedef struct {
+    list_t *stmts;
+    env_t *env;
+} block_t;
+
+typedef struct {
     // a return statement just has an expression to be evaluated and returned
     expr_t *expr; 
 } return_stmt_t;
@@ -111,13 +116,32 @@ typedef struct {
 
 typedef struct {
     enum {
+        BLOCK,
+        SINGLE,
+    } type;
+    union {
+        block_t *block;
+        stmt_t *single;
+    };
+} block_or_single_t;
+
+typedef struct {
+    expr_t *cond;
+    block_or_single_t *then;
+    block_or_single_t *els;
+} if_stmt_t;
+
+typedef struct stmt {
+    enum {
         STMT_RETURN,
         STMT_DECLARE,
         STMT_EXPR,
+        STMT_IF,
     } type;
     union {
         return_stmt_t *ret;
         declare_stmt_t *declare;
+        if_stmt_t *if_stmt;
 
         // Apparently, standalone expressions (ie, not in an assign or return statement) is totally
         // valid C. GCC will compile it, but will warn you.

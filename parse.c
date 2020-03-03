@@ -2,6 +2,8 @@
 // global - needed for home allocation
 env_t *global_env;
 static expr_t *parse_expr(list_t *tokens, env_t *env);
+static stmt_t *parse_stmt(list_t *tokens, env_t *env);
+static block_t *parse_block(list_t *tokens, env_t *env);
 
 // for now, only idents can be used in assign statements
 // Later we want this to check for specific unary ops, like pointer derefs and pre/postinc and array
@@ -15,10 +17,19 @@ static bool is_valid_lhs(expr_t *expr) {
 static token_t *expect_next(list_t *tokens, token_type_t expectation) {
     token_t *next = list_pop(tokens);
     if (!next || next->type != expectation) {
-        printf("Unexpected token\n");
+        printf("Unexpected token: %u\n", (unsigned)next->type);
         exit(-1);
     }
     return next;
+}
+
+// consumes if true
+static bool check_next(list_t *tokens, token_type_t expectation) {
+    token_t *next = list_peek(tokens);
+    if (!next || next->type != expectation) {
+        return false;
+    }
+    return true;
 }
 
 // TODO is this necessar/can i put all types together
@@ -429,6 +440,51 @@ static declare_stmt_t *parse_declare_stmt(list_t *tokens, env_t *env) {
     return declare;
 }
 
+static if_stmt_t *parse_if_stmt(list_t *tokens, env_t *env) {
+    expect_next(tokens, TOK_IF);
+    debug("parse_if_stmt: found if\n");
+    if_stmt_t *ret = malloc(sizeof(if_stmt_t));
+    debug("expected: %u\n", (unsigned)TOK_OPEN_PAREN);
+    expect_next(tokens, TOK_OPEN_PAREN);
+    ret->cond = parse_expr(tokens, env);
+    debug("parse_if_stmt: got cond\n");
+    expect_next(tokens, TOK_CLOSE_PAREN);
+
+    ret->then = malloc(sizeof(block_or_single_t));
+
+    if (check_next(tokens, TOK_OPEN_BRACE)) {
+        // statement list
+        debug("parse_if_stmt: got then block\n");
+        ret->then->type = BLOCK;
+        ret->then->block = parse_block(tokens, env);
+    } else {
+        debug("parse_if_stmt: got then single\n");
+        // single statement
+        ret->then->type = SINGLE;
+        ret->then->single = parse_stmt(tokens, env);
+    }
+
+    ret->els = NULL;
+    if (check_next(tokens, TOK_ELSE)) {
+        debug("parse_if_stmt: found else\n");
+        list_pop(tokens);
+        ret->els = malloc(sizeof(block_or_single_t));
+        if (check_next(tokens, TOK_OPEN_BRACE)) {
+            // statement list
+            debug("parse_if_stmt: found else block\n");
+            ret->els->type = BLOCK;
+            ret->els->block = parse_block(tokens, env);
+        } else {
+            // single statement
+            debug("parse_if_stmt: found else single\n");
+            ret->els->type = SINGLE;
+            ret->els->single = parse_stmt(tokens, env);
+        }
+    }
+
+    return ret;
+}
+
 static bool is_type(token_type_t type) {
     switch (type) {
         case TOK_INT_TYPE:
@@ -437,6 +493,19 @@ static bool is_type(token_type_t type) {
         default:
             return false;
     }
+}
+
+static block_t *parse_block(list_t *tokens, env_t *outer) {
+    expect_next(tokens, TOK_OPEN_BRACE);
+    token_t *curr; 
+    block_t *block = malloc(sizeof(block_t));
+    block->stmts = list_new();
+    block->env = env_new(outer);
+    while ((curr = list_peek(tokens)) && curr->type != TOK_CLOSE_BRACE) {
+        list_push(block->stmts, parse_stmt(tokens, block->env));
+    }
+    expect_next(tokens, TOK_CLOSE_BRACE);
+    return block;
 }
 
 static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
@@ -454,6 +523,13 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
             return NULL;
         ret->type = STMT_RETURN;
         ret->ret = ret_stmt;
+        return ret;
+    }
+
+    if (curr->type == TOK_IF) {
+        if_stmt_t *if_stmt = parse_if_stmt(tokens, env);
+        ret->type = STMT_IF;
+        ret->if_stmt = if_stmt;
         return ret;
     }
 
@@ -504,8 +580,7 @@ static fn_def_t *parse_fn_def(list_t *tokens) {
 
     debug("parse_fn_def: Parsing function %s\n", string_get(fn->name));
 
-    // parsing parameters
-    // TODO only handling functions without parameters right now
+    // parsing parameters // TODO only handling functions without parameters right now
     expect_next(tokens, TOK_OPEN_PAREN);
 
     // TODO tests don't put void there

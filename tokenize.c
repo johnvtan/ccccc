@@ -25,6 +25,8 @@ static const keyword_pair_t keywords[] = {
     {"--", TOK_DECREMENT},
     {"+=", TOK_PLUS_EQ},
     {"-=", TOK_MINUS_EQ},
+    {"if", TOK_IF},
+    {"else", TOK_ELSE},
     {NULL, 0},
 };
 
@@ -46,6 +48,8 @@ static const special_char_pair_t special_chars[] = {
     {'!', TOK_BANG},
     {'<', TOK_LT},
     {'>', TOK_GT},
+    {'?', TOK_QUESTION},
+    {':', TOK_COLON},
     {0, 0},
 };
 
