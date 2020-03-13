@@ -39,7 +39,8 @@ typedef struct {
 typedef struct {
     enum bin_op {
         BIN_ADD,
-        BIN_SUB, BIN_MUL,
+        BIN_SUB,
+        BIN_MUL,
         BIN_DIV,
         BIN_LT,
         BIN_GT,

@@ -459,6 +459,16 @@ static list_t *expr_to_instrs(expr_t *expr, env_t *env) {
     return NULL;
 }
 
+static list_t *block_to_instrs(block_t *block) {
+    list_t *ret = list_new();
+    stmt_t *curr_stmt = list_pop(block->stmts);
+    for (; curr_stmt; curr_stmt = list_pop(block->stmts)) {
+        list_concat(ret, stmt_to_instrs(curr_stmt, block->env));
+    }
+    return ret;
+}
+
+
 static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label) {
     if (!stmt) {
         UNREACHABLE("stmt_to_instrs: stmt is invalid\n");
@@ -469,8 +479,36 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
         debug("Found return statement\n");
         list_t *expr_instrs = expr_to_instrs(stmt->ret->expr, env);
         list_concat(ret, expr_instrs);
-
         list_push(ret, instr_jmp(OP_JMP, epilogue_label->label.name));
+        return ret;
+    }
+
+    if (stmt->type == STMT_IF) {
+        debug("Found if statement\n");
+        list_t *ret = list_new();
+        list_concat(ret, expr_to_instrs(stmt->if_stmt->cond));
+
+        // If cond is 0 (false), jump to else statement
+        list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
+        string_t *else_label = unique_label("else");
+        list_push(ret, instr_jmp(OP_JE, else_label));
+
+        if (stmt->if_stmt->then->type == SINGLE) {
+            list_concat(ret, stmt_to_instrs(stmt->if_stmt->then->single, env));
+        } else {
+            // block should have its own env?
+            list_concat(ret, stmt_to_instrs(stmt->if_stmt->then->block));
+        }
+
+        string_t *post_conditional_label = unique_label("post_cond");
+        list_push(ret, instr_jmp(OP_JMP, post_conditional_label));
+        list_push(ret, new_label(else_label, LABEL_STATIC));
+        if (stmt->if_stmt->els->type == SINGLE) {
+            list_concat(ret, stmt_to_instrs(stmt->if_stmt->then->single, env));
+        } else {
+            list_concat(ret, stmt_to_instrs(stmt->if_stmt->then->block));
+        }
+        list_push(ret, new_label(new_label(post_conditional_label, LABEL_STATIC)));
         return ret;
     }
 
@@ -508,7 +546,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
         return ret;
     }
 
-    UNREACHABLE("WTF NOT A RETURN STATEMENT\n");
+    UNREACHABLE("Unrecognized statement type\n");
     return NULL;
 } 
 
