@@ -34,6 +34,18 @@ static int op_to_num_args(opcode_t op) {
     }
 }
 
+static bool var_was_declared(env_t *env, string_t *var, var_t **var_info) {
+    while (env) {
+        var_t *v = env_get(env, var);
+        if (v->declared) {
+            *var_info = v;
+            return true;
+        }
+        env = env->parent;
+    }
+    return false;
+}
+
 static string_t *unique_label(char *seed) {
     static int count = 0;
     char buf[32];
@@ -232,9 +244,10 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
     if (primary->type == PRIMARY_VAR) {
         // Do i just move the variable from its home to RAX?
         list_t *ret = list_new();
-        var_t *var_info = env_get(env, primary->var);
         debug("Got primary var: %s\n", string_get(primary->var));
-        if (!var_info->declared) {
+
+        var_t *var_info = NULL;
+        if (!var_was_declared(env, primary->var, &var_info)) {
             UNREACHABLE("Compilation error: variable referenced before declaration\n");
         }
         list_push(ret, instr_m2r(OP_MOV, var_info->home, REG_RAX));
@@ -269,8 +282,8 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
     }
 
     if (unary->op == UNARY_POSTINC) {
-        var_t *var_info = env_get(env, unary->expr->primary->var);
-        if (!var_info->declared) {
+        var_t *var_info = NULL;
+        if (!var_was_declared(env, unary->expr->primary->var, &var_info)) {
             UNREACHABLE("assign_to_instrs: variable is used before declaration");
         }
         list_push(ret, instr_i2m(OP_ADD, 1, var_info->home));
@@ -278,8 +291,8 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
     }
 
     if (unary->op == UNARY_POSTDEC) {
-        var_t *var_info = env_get(env, unary->expr->primary->var);
-        if (!var_info->declared) {
+        var_t *var_info = NULL;
+        if (!var_was_declared(env, unary->expr->primary->var, &var_info)) {
             UNREACHABLE("assign_to_instrs: variable is used before declaration");
         }
         list_push(ret, instr_i2m(OP_SUB, 1, var_info->home));
@@ -443,8 +456,8 @@ static list_t *assign_to_instrs(assign_t *assign, env_t *env) {
 
     list_t *ret = list_new();
     list_concat(ret, expr_to_instrs(assign->rhs, env));
-    var_t *var_info = env_get(env, assign->lhs->primary->var);
-    if (!var_info->declared) {
+    var_t *var_info = NULL;
+    if (!var_was_declared(env, assign->lhs->primary->var, &var_info)) {
         UNREACHABLE("assign_to_instrs: variable is used before declaration");
     }
     output_t *mov = instr_r2m(OP_MOV, REG_RAX, var_info->home);
@@ -543,6 +556,11 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
         return ret;
     }
 
+    if (stmt->type == STMT_BLOCK) {
+        debug("Found block statement\n");
+        return block_to_instrs(stmt->block, epilogue_label);
+    }
+
     if (stmt->type == STMT_DECLARE) {
         debug("Found a declare statement for var %s\n", string_get(stmt->declare->name));
 
@@ -598,6 +616,7 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
     // function prologue
     list_push(ret, instr_r(OP_PUSH, REG_RBP));
     list_push(ret, instr_r2r(OP_MOV, REG_RSP, REG_RBP));
+
     list_push(ret, instr_i2r(OP_ADD, fn_def->env->sp_offset, REG_RSP));
     
     // function epilogue label

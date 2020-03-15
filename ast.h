@@ -144,13 +144,15 @@ typedef struct stmt {
     enum {
         STMT_RETURN,
         STMT_DECLARE,
-        STMT_EXPR,
         STMT_IF,
+        STMT_BLOCK,
+        STMT_EXPR,
     } type;
     union {
         return_stmt_t *ret;
         declare_stmt_t *declare;
         if_stmt_t *if_stmt;
+        block_t *block;
 
         // Apparently, standalone expressions (ie, not in an assign or return statement) is totally
         // valid C. GCC will compile it, but will warn you.

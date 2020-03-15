@@ -24,13 +24,18 @@ static void alloc_scoped_env(env_t *env, int offset) {
         offset -= 8;
     }
 
-    if (env->children->len == 0)
-        return;
+    // TODO rewrite this env sucks
+    if (env->children->len == 0) {
+        env_t *curr = env;
+        while (curr->parent) {
+            if (env->sp_offset < curr->sp_offset)
+                curr->sp_offset = env->sp_offset;
+            curr = curr->parent;
+        }
+    }
 
     list_for_each(env->children, curr_node) {
         env_t *child_env = (env_t*)curr_node->data;
-
-        // gasp, recursion!
         alloc_scoped_env(child_env, offset);
     }
 

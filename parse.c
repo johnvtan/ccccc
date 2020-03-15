@@ -535,6 +535,12 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
 
     // TODO only parse return statements for now
     curr = list_peek(tokens);
+    if (curr->type == TOK_OPEN_BRACE) {
+        ret->block = parse_block(tokens, env);
+        ret->type = STMT_BLOCK;
+        return ret;
+    }
+
     if (curr->type == TOK_RETURN) {
         debug("parse_stmt: Found return statement\n");
         return_stmt_t *ret_stmt = parse_return_stmt(tokens, env);

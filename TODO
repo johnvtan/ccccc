@@ -161,6 +161,7 @@ IMPLEMENTING PRE/POSTINC:
 how am I going to tell if its a postinc operator?
 is it unary? it's also an assign. Can I expand it out to be an assignment expression?
 
+REWRITE ENV
 ==========Nice to have==========
 - Less questionable organization of code
 - Decent error messages
