@@ -10,5 +10,19 @@ env_t *env_new(env_t *parent) {
     new_env->vars = list_new();
     new_env->homes = map_new();
     new_env->sp_offset = 0;
+
+    if (parent) {
+        list_push(parent->children, new_env);
+    }
     return new_env;
+}
+
+void *env_get(env_t *env, string_t *var) {
+    void *ret = NULL;
+    while (env) {
+        if ((ret = map_get(env->homes, var)))
+            break;
+        env = env->parent;
+    }
+    return ret;
 }

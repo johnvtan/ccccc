@@ -232,7 +232,7 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
     if (primary->type == PRIMARY_VAR) {
         // Do i just move the variable from its home to RAX?
         list_t *ret = list_new();
-        var_t *var_info = map_get(env->homes, primary->var);
+        var_t *var_info = env_get(env, primary->var);
         debug("Got primary var: %s\n", string_get(primary->var));
         if (!var_info->declared) {
             UNREACHABLE("Compilation error: variable referenced before declaration\n");
@@ -269,7 +269,7 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
     }
 
     if (unary->op == UNARY_POSTINC) {
-        var_t *var_info = map_get(env->homes, unary->expr->primary->var);
+        var_t *var_info = env_get(env, unary->expr->primary->var);
         if (!var_info->declared) {
             UNREACHABLE("assign_to_instrs: variable is used before declaration");
         }
@@ -278,7 +278,7 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
     }
 
     if (unary->op == UNARY_POSTDEC) {
-        var_t *var_info = map_get(env->homes, unary->expr->primary->var);
+        var_t *var_info = env_get(env, unary->expr->primary->var);
         if (!var_info->declared) {
             UNREACHABLE("assign_to_instrs: variable is used before declaration");
         }
@@ -424,7 +424,7 @@ static list_t *assign_to_instrs(assign_t *assign, env_t *env) {
 
     list_t *ret = list_new();
     list_concat(ret, expr_to_instrs(assign->rhs, env));
-    var_t *var_info = map_get(env->homes, assign->lhs->primary->var);
+    var_t *var_info = env_get(env, assign->lhs->primary->var);
     if (!var_info->declared) {
         UNREACHABLE("assign_to_instrs: variable is used before declaration");
     }
@@ -522,7 +522,9 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
     }
 
     if (stmt->type == STMT_DECLARE) {
-        debug("Found a declare statement\n");
+        debug("Found a declare statement for var %s\n", string_get(stmt->declare->name));
+
+        // only check if the variable is declared in this scope.
         var_t *var_info = map_get(env->homes, stmt->declare->name);
         if (var_info->declared) {
             UNREACHABLE("Compilation error: variable has multiple definitions in the same scope");

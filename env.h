@@ -16,5 +16,6 @@ typedef struct env {
 } env_t;
 
 env_t *env_new(env_t *parent);
+void *env_get(env_t *env, string_t *var);
 
 #endif
