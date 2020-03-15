@@ -27,6 +27,11 @@ static const keyword_pair_t keywords[] = {
     {"-=", TOK_MINUS_EQ},
     {"if", TOK_IF},
     {"else", TOK_ELSE},
+    {"for", TOK_FOR},
+    {"while", TOK_WHILE},
+    {"do", TOK_DO},
+    {"break", TOK_BREAK},
+    {"continue", TOK_CONTINUE},
     {NULL, 0},
 };
 

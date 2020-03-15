@@ -58,6 +58,12 @@ typedef enum token_type {
     TOK_ELSE,
     TOK_COLON,
     TOK_QUESTION,
+
+    TOK_FOR,
+    TOK_WHILE,
+    TOK_DO,
+    TOK_BREAK,
+    TOK_CONTINUE,
 } token_type_t;
 
 typedef struct token {

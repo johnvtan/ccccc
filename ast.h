@@ -140,6 +140,22 @@ typedef struct {
     block_or_single_t *els;
 } if_stmt_t;
 
+typedef struct {
+    stmt_t *init;
+    expr_t *cond;
+    expr_t *post;
+    block_or_single_t *body;
+} for_stmt_t;
+
+typedef struct {
+    enum {
+        WHILE,
+        DO_WHILE,
+    } type;
+    expr_t *cond;
+    block_or_single_t *body;
+} while_stmt_t;
+
 typedef struct stmt {
     enum {
         STMT_RETURN,
@@ -147,12 +163,18 @@ typedef struct stmt {
         STMT_IF,
         STMT_BLOCK,
         STMT_EXPR,
+        STMT_FOR,
+        STMT_WHILE,
+        STMT_BREAK,
+        STMT_CONTINUE,
     } type;
     union {
         return_stmt_t *ret;
         declare_stmt_t *declare;
         if_stmt_t *if_stmt;
         block_t *block;
+        for_stmt_t *for_stmt;
+        while_stmt_t *while_stmt;
 
         // Apparently, standalone expressions (ie, not in an assign or return statement) is totally
         // valid C. GCC will compile it, but will warn you.
