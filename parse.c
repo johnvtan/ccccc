@@ -12,8 +12,7 @@ static bool is_valid_lhs(expr_t *expr) {
     return expr && expr->type == PRIMARY && expr->primary->type == PRIMARY_VAR;
 }
 
-// expect_next() consumes the token
-// TODO better error handling stuff
+// expect_next() consumes the token // TODO better error handling stuff
 static token_t *expect_next(list_t *tokens, token_type_t expectation) {
     token_t *next = list_pop(tokens);
     if (!next || next->type != expectation) {

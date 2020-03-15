@@ -1,6 +1,7 @@
 #include "compile.h"
 
 static list_t *expr_to_instrs(expr_t *expr, env_t *env);
+static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label);
 
 static int op_to_num_args(opcode_t op) {
     switch (op) {
@@ -459,15 +460,24 @@ static list_t *expr_to_instrs(expr_t *expr, env_t *env) {
     return NULL;
 }
 
-static list_t *block_to_instrs(block_t *block) {
+static list_t *block_to_instrs(block_t *block, output_t *epilogue_label) {
     list_t *ret = list_new();
     stmt_t *curr_stmt = list_pop(block->stmts);
     for (; curr_stmt; curr_stmt = list_pop(block->stmts)) {
-        list_concat(ret, stmt_to_instrs(curr_stmt, block->env));
+        list_concat(ret, stmt_to_instrs(curr_stmt, block->env, epilogue_label));
     }
     return ret;
 }
 
+static list_t *block_or_single_to_instrs(block_or_single_t *block_or_single, env_t *env, output_t *epilogue_label) {
+    list_t *ret = list_new();
+    if (block_or_single->type == SINGLE) {
+        list_concat(ret, stmt_to_instrs(block_or_single->single, env, epilogue_label));
+    } else {
+        list_concat(ret, block_to_instrs(block_or_single->block, epilogue_label));
+    }
+    return ret;
+}
 
 static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label) {
     if (!stmt) {
@@ -486,29 +496,28 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
     if (stmt->type == STMT_IF) {
         debug("Found if statement\n");
         list_t *ret = list_new();
-        list_concat(ret, expr_to_instrs(stmt->if_stmt->cond));
-
-        // If cond is 0 (false), jump to else statement
+        
+        list_concat(ret, expr_to_instrs(stmt->if_stmt->cond, env));
         list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
-        string_t *else_label = unique_label("else");
-        list_push(ret, instr_jmp(OP_JE, else_label));
 
-        if (stmt->if_stmt->then->type == SINGLE) {
-            list_concat(ret, stmt_to_instrs(stmt->if_stmt->then->single, env));
-        } else {
-            // block should have its own env?
-            list_concat(ret, stmt_to_instrs(stmt->if_stmt->then->block));
-        }
+        string_t *post_cond_label = unique_label("post_cond");
+        output_t *post_cond_label_output = new_label(post_cond_label, LABEL_STATIC);
+        list_t *then_instrs = block_or_single_to_instrs(stmt->if_stmt->then, env, epilogue_label);
 
-        string_t *post_conditional_label = unique_label("post_cond");
-        list_push(ret, instr_jmp(OP_JMP, post_conditional_label));
-        list_push(ret, new_label(else_label, LABEL_STATIC));
-        if (stmt->if_stmt->els->type == SINGLE) {
-            list_concat(ret, stmt_to_instrs(stmt->if_stmt->then->single, env));
+        if (stmt->if_stmt->els) {
+            string_t *else_label = unique_label("else");
+            list_push(ret, instr_jmp(OP_JE, else_label));
+            list_concat(ret, then_instrs);
+            list_push(ret, instr_jmp(OP_JMP, post_cond_label));
+            list_push(ret, new_label(else_label, LABEL_STATIC));
+            list_concat(ret, block_or_single_to_instrs(stmt->if_stmt->els, env, epilogue_label));
+            list_push(ret, post_cond_label_output);
         } else {
-            list_concat(ret, stmt_to_instrs(stmt->if_stmt->then->block));
+            // No else statement, just emit the then instructions
+            list_push(ret, instr_jmp(OP_JE, post_cond_label));
+            list_concat(ret, then_instrs);
+            list_push(ret, post_cond_label_output);
         }
-        list_push(ret, new_label(new_label(post_conditional_label, LABEL_STATIC)));
         return ret;
     }
 
