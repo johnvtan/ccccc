@@ -78,17 +78,25 @@ typedef struct {
     expr_t *rhs;
 } assign_t;
 
+typedef struct {
+    expr_t *cond;
+    expr_t *then;
+    expr_t *els;
+} ternary_t;
+
 typedef struct expr {
     enum {
         PRIMARY,
         UNARY_OP,
         BIN_OP,
+        TERNARY,
         ASSIGN,
     } type;
     union {
         primary_t *primary;
         unary_expr_t *unary;
         bin_expr_t *bin;
+        ternary_t *ternary;
         assign_t *assign;
     };
 } expr_t;

@@ -123,6 +123,16 @@ static expr_t *new_primary_expr(expr_t *e) {
     return expr;
 }
 
+static expr_t *new_ternary(expr_t *cond, expr_t *then, expr_t *els) {
+    expr_t *expr = malloc(sizeof(expr_t));
+    expr->type = TERNARY;
+    expr->ternary = malloc(sizeof(ternary_t));
+    expr->ternary->cond = cond;
+    expr->ternary->then = then;
+    expr->ternary->els = els;
+    return expr;
+}
+
 static expr_t *parse_primary(list_t *tokens, env_t *env) {
     token_t *curr = list_pop(tokens);
 
@@ -355,13 +365,32 @@ static expr_t *parse_logical_or(list_t *tokens, env_t *env) {
     return ret;
 }
 
+static expr_t *parse_ternary(list_t *tokens, env_t *env) {
+    expr_t *cond = parse_logical_or(tokens, env);
+    if (!check_next(tokens, TOK_QUESTION)) {
+        debug("parse_ternary: no question mark found, not a ternary\n");
+        return cond;
+    }
+
+    debug("parse_ternary: Found a ternary\n");
+    expect_next(tokens, TOK_QUESTION);
+    expr_t *then = parse_expr(tokens, env);
+    debug("parse_ternary: got then\n");
+    expect_next(tokens, TOK_COLON);
+    expr_t *els = parse_ternary(tokens, env);
+    debug("parse_ternary: got else\n");
+
+    return new_ternary(cond, then, els);
+}
+
 // Handles += as well as =
 static expr_t *parse_assign(list_t *tokens, env_t *env) {
-    expr_t *maybe_lhs = parse_logical_or(tokens, env);
+    expr_t *maybe_lhs = parse_ternary(tokens, env);
     if (!is_valid_lhs(maybe_lhs)) {
         debug("parse_assign: Not a valid lhs so returning\n");
         return maybe_lhs;
     }
+
     // here we might have an assignment statement
     // we have a valid lhs at least
     debug("parse_assign: Maybe an assign\n");
