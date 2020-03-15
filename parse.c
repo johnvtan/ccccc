@@ -439,6 +439,21 @@ static declare_stmt_t *parse_declare_stmt(list_t *tokens, env_t *env) {
     return declare;
 }
 
+static block_or_single_t *parse_block_or_single(list_t *tokens, env_t *env) {
+    block_or_single_t *ret = malloc(sizeof(block_or_single_t));
+    if (check_next(tokens, TOK_OPEN_BRACE)) {
+        ret->type = BLOCK;
+        ret->block = parse_block(tokens, env);
+    } else {
+        ret->type = SINGLE;
+        ret->single = parse_stmt(tokens, env);
+        if (ret->single->type == STMT_DECLARE) {
+            UNREACHABLE("Error: in single of block or single, statement cannot be a declare");
+        }
+    }
+    return ret;
+}
+
 static if_stmt_t *parse_if_stmt(list_t *tokens, env_t *env) {
     expect_next(tokens, TOK_IF);
     debug("parse_if_stmt: found if\n");
@@ -450,37 +465,13 @@ static if_stmt_t *parse_if_stmt(list_t *tokens, env_t *env) {
     expect_next(tokens, TOK_CLOSE_PAREN);
 
     ret->then = malloc(sizeof(block_or_single_t));
-
-    if (check_next(tokens, TOK_OPEN_BRACE)) {
-        // statement list
-        debug("parse_if_stmt: got then block\n");
-        ret->then->type = BLOCK;
-        ret->then->block = parse_block(tokens, env);
-    } else {
-        debug("parse_if_stmt: got then single\n");
-        // single statement
-        ret->then->type = SINGLE;
-        ret->then->single = parse_stmt(tokens, env);
-    }
-
+    ret->then = parse_block_or_single(tokens, env);
     ret->els = NULL;
     if (check_next(tokens, TOK_ELSE)) {
         debug("parse_if_stmt: found else\n");
         list_pop(tokens);
-        ret->els = malloc(sizeof(block_or_single_t));
-        if (check_next(tokens, TOK_OPEN_BRACE)) {
-            // statement list
-            debug("parse_if_stmt: found else block\n");
-            ret->els->type = BLOCK;
-            ret->els->block = parse_block(tokens, env);
-        } else {
-            // single statement
-            debug("parse_if_stmt: found else single\n");
-            ret->els->type = SINGLE;
-            ret->els->single = parse_stmt(tokens, env);
-        }
+        ret->els = parse_block_or_single(tokens, env);
     }
-
     return ret;
 }
 
