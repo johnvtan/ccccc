@@ -412,6 +412,25 @@ static list_t *binop_to_instrs(bin_expr_t *bin, env_t *env) {
     return NULL;
 }
 
+static list_t *ternary_to_instrs(ternary_t *ternary, env_t *env) {
+    list_t *ret = list_new();
+    string_t *els_label = unique_label("else");
+    string_t *post_cond_label = unique_label("post_cond");
+
+    list_concat(ret, expr_to_instrs(ternary->cond, env));
+
+    list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
+    list_push(ret, instr_jmp(OP_JE, els_label));
+
+    list_concat(ret, expr_to_instrs(ternary->then, env));
+    list_push(ret, instr_jmp(OP_JMP, post_cond_label));
+
+    list_push(ret, new_label(els_label, LABEL_STATIC));
+    list_concat(ret, expr_to_instrs(ternary->els, env));
+    list_push(ret, new_label(post_cond_label, LABEL_STATIC));
+    return ret;
+}
+
 static bool is_valid_assign_lhs(expr_t *expr) {
     return expr->type == PRIMARY && expr->primary->type == PRIMARY_VAR;
 }
@@ -433,7 +452,6 @@ static list_t *assign_to_instrs(assign_t *assign, env_t *env) {
     return ret;
 }
 
-
 // TODO how to not put everything into eax
 static list_t *expr_to_instrs(expr_t *expr, env_t *env) {
     if (!expr) {
@@ -450,6 +468,10 @@ static list_t *expr_to_instrs(expr_t *expr, env_t *env) {
 
     if (expr->type == BIN_OP) {
         return binop_to_instrs(expr->bin, env);
+    }
+
+    if (expr->type == TERNARY) {
+        return ternary_to_instrs(expr->ternary, env);
     }
 
     if (expr->type == ASSIGN) {
