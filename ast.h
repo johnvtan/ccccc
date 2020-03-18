@@ -91,6 +91,7 @@ typedef struct expr {
         BIN_OP,
         TERNARY,
         ASSIGN,
+        NULL_EXPR,
     } type;
     union {
         primary_t *primary;
@@ -145,16 +146,18 @@ typedef struct {
     expr_t *cond;
     expr_t *post;
     block_or_single_t *body;
+    env_t *env; // basically just for the init clause
 } for_stmt_t;
 
 typedef struct {
-    enum {
-        WHILE,
-        DO_WHILE,
-    } type;
     expr_t *cond;
     block_or_single_t *body;
 } while_stmt_t;
+
+typedef struct {
+    expr_t *cond;
+    block_or_single_t *body;
+} do_stmt_t;
 
 typedef struct stmt {
     enum {
@@ -165,6 +168,7 @@ typedef struct stmt {
         STMT_EXPR,
         STMT_FOR,
         STMT_WHILE,
+        STMT_DO,
         STMT_BREAK,
         STMT_CONTINUE,
     } type;
@@ -175,6 +179,7 @@ typedef struct stmt {
         block_t *block;
         for_stmt_t *for_stmt;
         while_stmt_t *while_stmt;
+        do_stmt_t *do_stmt;
 
         // Apparently, standalone expressions (ie, not in an assign or return statement) is totally
         // valid C. GCC will compile it, but will warn you.

@@ -158,6 +158,13 @@ static expr_t *parse_primary(list_t *tokens, env_t *env) {
         return new_primary_expr(expr);
     }
 
+    if (curr->type == TOK_SEMICOLON) {
+        debug("Found null expr\n");
+        expr_t *expr = malloc(sizeof(expr_t));
+        expr->type = NULL_EXPR;
+        return expr;
+    }
+
     UNREACHABLE("Error parsing expected primary expression\n");
     return NULL;
 }
@@ -424,6 +431,7 @@ static expr_t *parse_assign(list_t *tokens, env_t *env) {
 }
 
 static expr_t *parse_expr(list_t *tokens, env_t *env) {
+    debug("parse_expr\n");
     return parse_assign(tokens, env);
 }
 
@@ -487,7 +495,6 @@ static if_stmt_t *parse_if_stmt(list_t *tokens, env_t *env) {
     expect_next(tokens, TOK_IF);
     debug("parse_if_stmt: found if\n");
     if_stmt_t *ret = malloc(sizeof(if_stmt_t));
-    debug("expected: %u\n", (unsigned)TOK_OPEN_PAREN);
     expect_next(tokens, TOK_OPEN_PAREN);
     ret->cond = parse_expr(tokens, env);
     debug("parse_if_stmt: got cond\n");
@@ -501,6 +508,61 @@ static if_stmt_t *parse_if_stmt(list_t *tokens, env_t *env) {
         list_pop(tokens);
         ret->els = parse_block_or_single(tokens, env);
     }
+    return ret;
+}
+
+static bool valid_init_clause(stmt_t *stmt) {
+    return stmt->type == STMT_DECLARE || stmt->type == STMT_EXPR;
+}
+
+static for_stmt_t *parse_for_stmt(list_t *tokens, env_t *env) {
+    expect_next(tokens, TOK_FOR);
+    debug("parse_for_stmt: found for\n");
+
+    for_stmt_t *ret = malloc(sizeof(for_stmt_t));
+    ret->env = env_new(env);
+    expect_next(tokens, TOK_OPEN_PAREN);
+    ret->init = parse_stmt(tokens, ret->env);
+    if (!valid_init_clause(ret->init)) {
+        UNREACHABLE("Error: invalid init clause in for loop\n");
+    }
+    debug("for: got init\n");
+    ret->cond = parse_expr(tokens, ret->env);
+    expect_next(tokens, TOK_SEMICOLON);
+    debug("for: got cond\n");
+    ret->post = parse_expr(tokens, ret->env);
+    debug("for: got post\n");
+    expect_next(tokens, TOK_CLOSE_PAREN);
+    ret->body = parse_block_or_single(tokens, ret->env);
+    return ret;
+}
+
+static while_stmt_t *parse_while_stmt(list_t *tokens, env_t *env) {
+    expect_next(tokens, TOK_WHILE);
+    debug("parse_while_stmt: found while\n");
+    while_stmt_t *ret = malloc(sizeof(while_stmt_t));
+    expect_next(tokens, TOK_OPEN_PAREN);
+    ret->cond = parse_expr(tokens, env);
+    debug("parse_while_stmt: got cond\n");
+    expect_next(tokens, TOK_CLOSE_PAREN);
+    ret->body = parse_block_or_single(tokens, env);
+    debug("parse_while_stmt: got body\n");
+    return ret;
+}
+
+static do_stmt_t *parse_do_stmt(list_t *tokens, env_t *env) {
+    expect_next(tokens, TOK_DO);
+    debug("parse_do_stmt: do found\n");
+    do_stmt_t *ret = malloc(sizeof(do_stmt_t));
+    ret->body = parse_block_or_single(tokens, env);
+    debug("parse_do_stmt: got body\n");
+
+    expect_next(tokens, TOK_WHILE);
+    expect_next(tokens, TOK_OPEN_PAREN);
+    ret->cond = parse_expr(tokens, env);
+    debug("parse_do_stmt: got cond\n");
+    expect_next(tokens, TOK_CLOSE_PAREN);
+    expect_next(tokens, TOK_SEMICOLON);
     return ret;
 }
 
@@ -531,10 +593,8 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
     if (!tokens || !env)
         return NULL;
     stmt_t *ret = malloc(sizeof(stmt_t));
-    token_t *curr;
+    token_t *curr = list_peek(tokens);
 
-    // TODO only parse return statements for now
-    curr = list_peek(tokens);
     if (curr->type == TOK_OPEN_BRACE) {
         ret->block = parse_block(tokens, env);
         ret->type = STMT_BLOCK;
@@ -555,6 +615,24 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
         if_stmt_t *if_stmt = parse_if_stmt(tokens, env);
         ret->type = STMT_IF;
         ret->if_stmt = if_stmt;
+        return ret;
+    }
+
+    if (curr->type == TOK_FOR) {
+        ret->for_stmt = parse_for_stmt(tokens, env);
+        ret->type = STMT_FOR;
+        return ret;
+    }
+
+    if (curr->type == TOK_WHILE) {
+        ret->while_stmt = parse_while_stmt(tokens, env);
+        ret->type = STMT_WHILE;
+        return ret;
+    }
+
+    if (curr->type == TOK_DO) {
+        ret->do_stmt = parse_do_stmt(tokens, env);
+        ret->type = STMT_DO;
         return ret;
     }
 
