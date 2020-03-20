@@ -292,6 +292,7 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
 
     if (unary->op == UNARY_POSTDEC) {
         var_t *var_info = NULL;
+        debug("Found postdec\n");
         if (!var_was_declared(env, unary->expr->primary->var, &var_info)) {
             UNREACHABLE("assign_to_instrs: variable is used before declaration");
         }
@@ -595,6 +596,33 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
         }
         list_concat(ret, expr_instrs);
         return ret;
+    }
+
+    if (stmt->type == STMT_FOR) {
+        UNREACHABLE("for unimplemented\n");
+    }
+
+    if (stmt->type == STMT_WHILE) {
+        list_t *ret = list_new();
+        string_t *begin_while_label = unique_label("begin_while");
+        string_t *post_while_label = unique_label("post_while");
+
+        list_push(ret, new_label(begin_while_label, LABEL_STATIC));
+
+        list_concat(ret, expr_to_instrs(stmt->while_stmt->cond, env));
+
+        list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
+        list_push(ret, instr_jmp(OP_JE, post_while_label));
+
+        list_concat(ret, block_or_single_to_instrs(stmt->while_stmt->body, env, epilogue_label));
+        list_push(ret, instr_jmp(OP_JMP, begin_while_label));
+        list_push(ret, new_label(post_while_label, LABEL_STATIC));
+
+        return ret;
+    }
+
+    if (stmt->type == STMT_DO) {
+        UNREACHABLE("do unimplemented\n");
     }
 
     UNREACHABLE("Unrecognized statement type\n");

@@ -127,11 +127,11 @@ static int identifier(char *p, token_t *token) {
     if (!isalpha(*p) && *p != '_')
         return -1;
 
-    // an identifier can consist of numbers, letters, underscores, hyphens
+    // an identifier can consist of numbers, letters, underscores
     token->type = TOK_IDENT;
     token->ident = string_new();
     while (*p) {
-        if (!isalpha(*p) && !isdigit(*p) && *p != '_' && *p != '-')
+        if (!isalpha(*p) && !isdigit(*p) && *p != '_')
             break;
         string_add(token->ident, *p++);
     }
