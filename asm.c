@@ -622,7 +622,16 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
     }
 
     if (stmt->type == STMT_DO) {
-        UNREACHABLE("do unimplemented\n");
+        list_t *ret = list_new();
+        string_t *begin_do_label = unique_label("begin_do");
+        list_push(ret, new_label(begin_do_label, LABEL_STATIC));
+        list_concat(ret, block_or_single_to_instrs(stmt->do_stmt->body, env, epilogue_label));
+        debug("body\n");
+        list_concat(ret, expr_to_instrs(stmt->do_stmt->cond, env));
+        debug("cond\n");
+        list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
+        list_push(ret, instr_jmp(OP_JNE, begin_do_label));
+        return ret;
     }
 
     UNREACHABLE("Unrecognized statement type\n");

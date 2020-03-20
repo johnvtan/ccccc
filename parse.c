@@ -631,6 +631,7 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
     }
 
     if (curr->type == TOK_DO) {
+        debug("Found do stmt\n");
         ret->do_stmt = parse_do_stmt(tokens, env);
         ret->type = STMT_DO;
         return ret;
