@@ -526,7 +526,7 @@ static list_t *block_or_single_to_instrs(block_or_single_t *block_or_single, env
     return ret;
 }
 
-static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label) {
+static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
     if (!stmt) {
         UNREACHABLE("stmt_to_instrs: stmt is invalid\n");
     }
@@ -536,7 +536,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
         debug("Found return statement\n");
         list_t *expr_instrs = expr_to_instrs(stmt->ret->expr, env);
         list_concat(ret, expr_instrs);
-        list_push(ret, instr_jmp(OP_JMP, epilogue_label->label.name));
+        list_push(ret, instr_jmp(OP_JMP, context.return_label));
         return ret;
     }
 
@@ -544,12 +544,12 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
         debug("Found if statement\n");
         list_t *ret = list_new();
         
-        list_concat(ret, expr_to_instrs(stmt->if_stmt->cond, env));
+        list_concat(ret, expr_to_instrs(stmt->if_stmt->cond, context.env));
         list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
 
         string_t *post_cond_label = unique_label("post_cond");
         output_t *post_cond_label_output = new_label(post_cond_label, LABEL_STATIC);
-        list_t *then_instrs = block_or_single_to_instrs(stmt->if_stmt->then, env, epilogue_label);
+        list_t *then_instrs = block_or_single_to_instrs(stmt->if_stmt->then, context);
 
         if (stmt->if_stmt->els) {
             string_t *else_label = unique_label("else");
@@ -557,7 +557,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
             list_concat(ret, then_instrs);
             list_push(ret, instr_jmp(OP_JMP, post_cond_label));
             list_push(ret, new_label(else_label, LABEL_STATIC));
-            list_concat(ret, block_or_single_to_instrs(stmt->if_stmt->els, env, epilogue_label));
+            list_concat(ret, block_or_single_to_instrs(stmt->if_stmt->els, context));
             list_push(ret, post_cond_label_output);
         } else {
             // No else statement, just emit the then instructions
@@ -570,14 +570,14 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
 
     if (stmt->type == STMT_BLOCK) {
         debug("Found block statement\n");
-        return block_to_instrs(stmt->block, epilogue_label);
+        return block_to_instrs(stmt->block, context);
     }
 
     if (stmt->type == STMT_DECLARE) {
         debug("Found a declare statement for var %s\n", string_get(stmt->declare->name));
 
         // only check if the variable is declared in this scope.
-        var_t *var_info = map_get(env->homes, stmt->declare->name);
+        var_t *var_info = map_get(context.env->homes, stmt->declare->name);
         if (var_info->declared) {
             UNREACHABLE("Compilation error: variable has multiple definitions in the same scope");
         }
@@ -586,7 +586,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
         var_info->declared = true;
         if (stmt->declare->init_expr) {
             list_t *ret = list_new();
-            list_concat(ret, expr_to_instrs(stmt->declare->init_expr, env));
+            list_concat(ret, expr_to_instrs(stmt->declare->init_expr, context.env));
 
             // expr should be in rax, so move it to the variable home.
             output_t *mov = instr_r2m(OP_MOV, REG_RAX, var_info->home);
@@ -594,14 +594,14 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
             return ret;
         }
         // TODO need better way of signalling that we don't want to add any instructions
-        // for this statement
+        // for this statement. Empty list?
         return NULL;
     }
 
     if (stmt->type == STMT_EXPR) {
         list_t *ret = list_new();
         debug("Found an expr statement\n");
-        list_t *expr_instrs = expr_to_instrs(stmt->expr, env);
+        list_t *expr_instrs = expr_to_instrs(stmt->expr, context.env);
         if (!expr_instrs) {
             UNREACHABLE("expr_instrs is invalid")
         }
@@ -610,28 +610,22 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
     }
 
     if (stmt->type == STMT_FOR) {
-        /*
-         * Init 
-         * begin for label * cond
-         * jz post_for
-         * body
-         * post
-         * jmp begin for
-         * post_for
-         */
-        list_t *ret = list_new();
-        list_concat(ret, stmt_to_instrs(stmt->for_stmt->init, stmt->for_stmt->env, epilogue_label));
-        
         string_t *begin_for_label = unique_label("begin_for");
         string_t *post_for_label = unique_label("post_for");
 
+        context.env = stmt->for_stmt->env;
+        context.iter_begin_label = begin_for_label;
+        context.iter_end_label = post_for_label;
+
+        list_t *ret = list_new();
+        list_concat(ret, stmt_to_instrs(stmt->for_stmt->init, context));
         list_push(ret, new_label(begin_for_label, LABEL_STATIC));
-        list_concat(ret, expr_to_instrs(stmt->for_stmt->cond, stmt->for_stmt->env));
+        list_concat(ret, expr_to_instrs(stmt->for_stmt->cond, context.env));
         list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
         list_push(ret, instr_jmp(OP_JE, post_for_label));
 
-        list_concat(ret, block_or_single_to_instrs(stmt->for_stmt->body, stmt->for_stmt->env, epilogue_label));
-        list_concat(ret, expr_to_instrs(stmt->for_stmt->post, stmt->for_stmt->env));
+        list_concat(ret, block_or_single_to_instrs(stmt->for_stmt->body, context));
+        list_concat(ret, expr_to_instrs(stmt->for_stmt->post, context.env));
         list_push(ret, instr_jmp(OP_JMP, begin_for_label));
         list_push(ret, new_label(post_for_label, LABEL_STATIC));
         return ret;
@@ -641,15 +635,17 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
         list_t *ret = list_new();
         string_t *begin_while_label = unique_label("begin_while");
         string_t *post_while_label = unique_label("post_while");
+        context.iter_begin_label = begin_while_label;
+        context.iter_end_label = post_while_label;
 
         list_push(ret, new_label(begin_while_label, LABEL_STATIC));
 
-        list_concat(ret, expr_to_instrs(stmt->while_stmt->cond, env));
+        list_concat(ret, expr_to_instrs(stmt->while_stmt->cond, context.env));
 
         list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
         list_push(ret, instr_jmp(OP_JE, post_while_label));
 
-        list_concat(ret, block_or_single_to_instrs(stmt->while_stmt->body, env, epilogue_label));
+        list_concat(ret, block_or_single_to_instrs(stmt->while_stmt->body, context));
         list_push(ret, instr_jmp(OP_JMP, begin_while_label));
         list_push(ret, new_label(post_while_label, LABEL_STATIC));
 
@@ -659,13 +655,16 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
     if (stmt->type == STMT_DO) {
         list_t *ret = list_new();
         string_t *begin_do_label = unique_label("begin_do");
+        string_t *end_do_label = unique_label("end_do");
+
+        context.iter_begin_label = begin_do_label;
+        context.iter_end_label = end_do_label;
         list_push(ret, new_label(begin_do_label, LABEL_STATIC));
-        list_concat(ret, block_or_single_to_instrs(stmt->do_stmt->body, env, epilogue_label));
-        debug("body\n");
-        list_concat(ret, expr_to_instrs(stmt->do_stmt->cond, env));
-        debug("cond\n");
+        list_concat(ret, block_or_single_to_instrs(stmt->do_stmt->body, context));
+        list_concat(ret, expr_to_instrs(stmt->do_stmt->cond, context.env));
         list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
         list_push(ret, instr_jmp(OP_JNE, begin_do_label));
+        list_push(ret, new_label(end_do_label, LABEL_STATIC));
         return ret;
     }
 
@@ -692,11 +691,18 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
     list_push(ret, instr_i2r(OP_ADD, fn_def->env->sp_offset, REG_RSP));
     
     // function epilogue label
-    output_t *epilogue_label = new_label(unique_label("fn_epilogue"), LABEL_STATIC);
+    string_t *fn_epilogue = unique_label("fn_epilogue");
+    output_t *epilogue_label = new_label(fn_epilogue, LABEL_STATIC);
+
+    context_t context;
+    context.return_label = fn_epilogue;
+    context.iter_start_label = NULL;
+    context.iter_end_label = NULL;
+    context.env = fn_def->env;
 
     stmt_t *curr_stmt = list_pop(fn_def->stmts);
     for (; curr_stmt; curr_stmt = list_pop(fn_def->stmts)) {
-        list_t *instrs = stmt_to_instrs(curr_stmt, fn_def->env, epilogue_label);
+        list_t *instrs = stmt_to_instrs(curr_stmt, context);
         list_concat(ret, instrs);
     }
 
