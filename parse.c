@@ -527,6 +527,10 @@ static for_stmt_t *parse_for_stmt(list_t *tokens, env_t *env) {
     }
     debug("for: got init\n");
     ret->cond = parse_expr(tokens, ret->env);
+    // For loops with no cond should run forever - replace the cond with a nonzero int.
+    if (ret->cond->type == NULL_EXPR) {
+        ret->cond = new_primary_int(1);
+    }
     expect_next(tokens, TOK_SEMICOLON);
     debug("for: got cond\n");
     ret->post = parse_expr(tokens, ret->env);

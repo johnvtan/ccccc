@@ -287,7 +287,11 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
         if (!var_was_declared(env, unary->expr->primary->var, &var_info)) {
             UNREACHABLE("assign_to_instrs: variable is used before declaration");
         }
-        list_push(ret, instr_i2m(OP_ADD, 1, var_info->home));
+
+        // Note that while we could add 1 directly to the memory location, this code is more
+        // generic and will be easier to use when dereference/array code is supported
+        list_push(ret, instr_i2r(OP_ADD, 1, REG_RAX));
+        list_push(ret, instr_r2m(OP_MOV, REG_RAX, var_info->home));
         return ret;
     }
 
@@ -297,7 +301,8 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
         if (!var_was_declared(env, unary->expr->primary->var, &var_info)) {
             UNREACHABLE("assign_to_instrs: variable is used before declaration");
         }
-        list_push(ret, instr_i2m(OP_SUB, 1, var_info->home));
+        list_push(ret, instr_i2r(OP_SUB, 1, REG_RAX));
+        list_push(ret, instr_r2m(OP_MOV, REG_RAX, var_info->home));
         return ret;
     }
 
