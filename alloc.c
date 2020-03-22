@@ -10,8 +10,7 @@ static void alloc_scoped_env(env_t *env, int offset) {
         var->home.offset = offset;
 
         debug("Found var %s: home = %d(rbp)\n", string_get(var->name), offset);
-
-        // This seems kinda dirty, but useful-ish for easier lookup
+// This seems kinda dirty, but useful-ish for easier lookup
         // TODO now i just have two lists for the same thing
         map_set(env->homes, var->name, var);
 

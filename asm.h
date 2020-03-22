@@ -107,4 +107,11 @@ typedef struct {
     };
 } output_t;
 
+typedef struct {
+    string_t *return_label;
+    string_t *block_start_label;
+    string_t *block_end_label;
+    env_t *env;
+} context_t;
+
 #endif

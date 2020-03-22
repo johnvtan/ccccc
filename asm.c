@@ -492,6 +492,10 @@ static list_t *expr_to_instrs(expr_t *expr, env_t *env) {
         return assign_to_instrs(expr->assign, env);
     }
 
+    if (expr->type == NULL_EXPR) {
+        return list_new();
+    }
+
     UNREACHABLE("unhandled expression\n");
     return NULL;
 }
@@ -599,7 +603,24 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
     }
 
     if (stmt->type == STMT_FOR) {
-        UNREACHABLE("for unimplemented\n");
+        /*
+         * Init 
+         * begin for label
+         * cond
+         * jz post_for
+         * body
+         * post
+         * jmp begin for
+         * post_for
+         */
+        list_t *ret = list_new();
+        list_concat(ret, stmt_to_instrs(stmt->for_stmt->init, stmt->for_stmt->env, epilogue_label));
+        
+        string_t *begin_for_label = unique_label("begin_for");
+        string_t *post_for_label = unique_label("post_for");
+
+        list_push(ret, new_label(begin_for_label, LABEL_STATIC));
+        list_concat(ret, expr_to_instrs(stmt->for_stmt->cond, stmt->for_stmt->env));
     }
 
     if (stmt->type == STMT_WHILE) {
@@ -661,10 +682,7 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
 
     stmt_t *curr_stmt = list_pop(fn_def->stmts);
     for (; curr_stmt; curr_stmt = list_pop(fn_def->stmts)) {
-        list_t *stmt_instrs = stmt_to_instrs(curr_stmt, fn_def->env, epilogue_label);
-        if (stmt_instrs) {
-            list_concat(ret, stmt_instrs);
-        }
+        list_concat(ret, stmt_to_instrs(curr_stmt, fn_def->env, epilogue_label));
     }
 
     // function epilogue

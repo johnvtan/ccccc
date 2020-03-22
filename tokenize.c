@@ -180,10 +180,7 @@ list_t *tokenize(string_t *input) {
         if (advance > 0) {
             char next_char = *(buf + advance);
             // TODO how to make this less hacky?
-            if (curr_token->type != TOK_INCREMENT
-                && curr_token->type != TOK_DECREMENT
-                && curr_token->type != TOK_PLUS_EQ
-                && curr_token->type != TOK_MINUS_EQ
+            if (curr_token->type == TOK_RETURN 
                 && !is_whitespace(next_char)
                 && next_char != ';') {
                 printf("Bad input program: malformed keyword\n");

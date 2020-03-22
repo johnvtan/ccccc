@@ -162,6 +162,11 @@ how am I going to tell if its a postinc operator?
 is it unary? it's also an assign. Can I expand it out to be an assignment expression?
 
 REWRITE ENV
+
+Things to do:
+- Rewrite env
+- Define a context that I'll pass around
+- Make functions have blocks instead of lists of statements
 ==========Nice to have==========
 - Less questionable organization of code
 - Decent error messages
