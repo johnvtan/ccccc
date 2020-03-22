@@ -22,7 +22,6 @@ static token_t *expect_next(list_t *tokens, token_type_t expectation) {
     return next;
 }
 
-// consumes if true
 static bool check_next(list_t *tokens, token_type_t expectation) {
     token_t *next = list_peek(tokens);
     if (!next || next->type != expectation) {
@@ -134,39 +133,39 @@ static expr_t *new_ternary(expr_t *cond, expr_t *then, expr_t *els) {
 }
 
 static expr_t *parse_primary(list_t *tokens, env_t *env) {
-    token_t *curr = list_pop(tokens);
+    token_t *curr = list_peek(tokens);
 
     if (curr->type == TOK_INT_LIT) {
+        list_pop(tokens);
         debug("Found integer literal: %d\n", curr->int_literal);
         return new_primary_int(curr->int_literal);
     }
 
     if (curr->type == TOK_CHAR_LIT) {
+        list_pop(tokens);
         debug("Found character literal\n");
         return new_primary_char(curr->char_literal);
     }
 
     if (curr->type == TOK_IDENT) {
+        list_pop(tokens);
         debug("Found identifier: %s\n", string_get(curr->ident));
         return new_primary_var(curr->ident);
     }
 
     if (curr->type == TOK_OPEN_PAREN) {
+        list_pop(tokens);
         debug("Found nested expr\n");
         expr_t *expr = parse_expr(tokens, env);
         expect_next(tokens, TOK_CLOSE_PAREN);
         return new_primary_expr(expr);
     }
 
-    if (curr->type == TOK_SEMICOLON) {
-        debug("Found null expr\n");
-        expr_t *expr = malloc(sizeof(expr_t));
-        expr->type = NULL_EXPR;
-        return expr;
-    }
-
-    UNREACHABLE("Error parsing expected primary expression\n");
-    return NULL;
+    // Anything else, assume it is NULL
+    debug("Found null expr\n");
+    expr_t *expr = malloc(sizeof(expr_t));
+    expr->type = NULL_EXPR;
+    return expr;
 }
 
 static expr_t *parse_postfix(list_t *tokens, env_t *env) {
@@ -656,6 +655,7 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
     ret->type = STMT_EXPR;
     ret->expr = expr; 
     expect_next(tokens, TOK_SEMICOLON);
+    debug("semicolon found from expr\n");
     return ret;
 }
 

@@ -41,7 +41,8 @@ int list_concat(list_t *l1, list_t *l2) {
 
     // I have a dummy head, I think
     l1->tail->next = l2->head->next;
-    l1->tail = l2->tail;
+    if (l2->len)
+        l1->tail = l2->tail;
     l1->len += l2->len;
     free(l2->head);
     free(l2);

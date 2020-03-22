@@ -263,7 +263,7 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
     if (!ret) {
         UNREACHABLE("unary_to_instrs: unary expr could not be generated\n");
     }
-
+    debug("unary to instrs\n");
     if (unary->op == UNARY_MATH_NEG) {
         list_push(ret, instr_r(OP_NEG, REG_RAX));
         return ret;
@@ -282,6 +282,7 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
     }
 
     if (unary->op == UNARY_POSTINC) {
+        debug("post inc\n");
         var_t *var_info = NULL;
         if (!var_was_declared(env, unary->expr->primary->var, &var_info)) {
             UNREACHABLE("assign_to_instrs: variable is used before declaration");
@@ -472,6 +473,7 @@ static list_t *expr_to_instrs(expr_t *expr, env_t *env) {
         UNREACHABLE("expr_to_instrs: expr is invalid\n");
     }
 
+    debug("expr to instrs\n");
     if (expr->type == PRIMARY) {
         return primary_to_instrs(expr->primary, env);
     }
@@ -605,8 +607,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
     if (stmt->type == STMT_FOR) {
         /*
          * Init 
-         * begin for label
-         * cond
+         * begin for label * cond
          * jz post_for
          * body
          * post
@@ -621,6 +622,14 @@ static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label
 
         list_push(ret, new_label(begin_for_label, LABEL_STATIC));
         list_concat(ret, expr_to_instrs(stmt->for_stmt->cond, stmt->for_stmt->env));
+        list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
+        list_push(ret, instr_jmp(OP_JE, post_for_label));
+
+        list_concat(ret, block_or_single_to_instrs(stmt->for_stmt->body, stmt->for_stmt->env, epilogue_label));
+        list_concat(ret, expr_to_instrs(stmt->for_stmt->post, stmt->for_stmt->env));
+        list_push(ret, instr_jmp(OP_JMP, begin_for_label));
+        list_push(ret, new_label(post_for_label, LABEL_STATIC));
+        return ret;
     }
 
     if (stmt->type == STMT_WHILE) {
@@ -682,7 +691,8 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
 
     stmt_t *curr_stmt = list_pop(fn_def->stmts);
     for (; curr_stmt; curr_stmt = list_pop(fn_def->stmts)) {
-        list_concat(ret, stmt_to_instrs(curr_stmt, fn_def->env, epilogue_label));
+        list_t *instrs = stmt_to_instrs(curr_stmt, fn_def->env, epilogue_label);
+        list_concat(ret, instrs);
     }
 
     // function epilogue
