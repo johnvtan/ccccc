@@ -1,9 +1,11 @@
 #include "compile.h"
 #include <assert.h>
 
-static void alloc_scoped_env(env_t *env, int offset) {
-    list_for_each(env->vars, curr_node) {
-        var_t *var = (var_t*)curr_node->data; 
+static void alloc_scoped_env(env_t *env, int offset, int *max_offset) {
+    var_t *var var;
+    pair_t *iter;
+    list_for_each(env->homes, iter) {
+        var_t *var = iter->value;
 
         // TODO give the var a home
         var->home.reg = REG_RBP;

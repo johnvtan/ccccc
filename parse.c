@@ -12,16 +12,18 @@ static bool is_valid_lhs(expr_t *expr) {
     return expr && expr->type == PRIMARY && expr->primary->type == PRIMARY_VAR;
 }
 
-// expect_next() consumes the token // TODO better error handling stuff
+// Consumes the next token. Program fails if expectation is not met.
+//
 static token_t *expect_next(list_t *tokens, token_type_t expectation) {
     token_t *next = list_pop(tokens);
     if (!next || next->type != expectation) {
-        printf("Unexpected token: %u\n", (unsigned)next->type);
-        exit(-1);
+        debug("Unexpected token: %u\n", (unsigned)next->type);
+        UNREACHABLE("Parse failed");
     }
     return next;
 }
 
+// Just peeks at the next token. Doesn't consume.
 static bool check_next(list_t *tokens, token_type_t expectation) {
     token_t *next = list_peek(tokens);
     if (!next || next->type != expectation) {
@@ -29,6 +31,17 @@ static bool check_next(list_t *tokens, token_type_t expectation) {
     }
     return true;
 }
+
+// Helper to check the next token and consume if it matches the expectation.
+static bool match(list_t *tokens, token_type_t expectation) {
+    token_t *next = list_peek(tokens);
+    if (!next || next->type != expectation) {
+        return false;
+    }
+    list_pop(tokens);
+    return true;
+}
+
 
 // TODO is this necessar/can i put all types together
 static builtin_type_t token_to_builtin_type(token_type_t t) {
@@ -455,13 +468,7 @@ static declare_stmt_t *parse_declare_stmt(list_t *tokens, env_t *env) {
     }
     declare->name = next->ident;
     debug("parse_declare_stmt: Found variable %s\n", string_get(declare->name));
-    // TODO do something with env and var
-    //map_set(env->map, declare->name, &declare->type);
-    var_t *new_var = malloc(sizeof(var_t));
-    new_var->name = declare->name;
-    new_var->type = declare->type;
-    new_var->declared = false;
-    list_push(env->vars, new_var);
+    env_add(env, declare->name, declare->type);
 
     list_pop(tokens);
     next = list_peek(tokens);

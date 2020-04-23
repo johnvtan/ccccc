@@ -20,10 +20,9 @@ typedef enum {
 
 typedef struct {
     builtin_type_t type;
-    string_t *name;
     mem_loc_t home;
     bool declared;
-} var_t;
+} var_info_t;
 
 typedef struct {
     enum unary_op {

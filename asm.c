@@ -1,7 +1,7 @@
 #include "compile.h"
 
 static list_t *expr_to_instrs(expr_t *expr, env_t *env);
-static list_t *stmt_to_instrs(stmt_t *stmt, env_t *env, output_t *epilogue_label);
+static list_t *stmt_to_instrs(stmt_t *stmt, context_t context);
 
 static int op_to_num_args(opcode_t op) {
     switch (op) {
@@ -507,21 +507,21 @@ static list_t *expr_to_instrs(expr_t *expr, env_t *env) {
     return NULL;
 }
 
-static list_t *block_to_instrs(block_t *block, output_t *epilogue_label) {
+static list_t *block_to_instrs(block_t *block, context_t context) {
     list_t *ret = list_new();
     stmt_t *curr_stmt = list_pop(block->stmts);
     for (; curr_stmt; curr_stmt = list_pop(block->stmts)) {
-        list_concat(ret, stmt_to_instrs(curr_stmt, block->env, epilogue_label));
+        list_concat(ret, stmt_to_instrs(curr_stmt, context));
     }
     return ret;
 }
 
-static list_t *block_or_single_to_instrs(block_or_single_t *block_or_single, env_t *env, output_t *epilogue_label) {
+static list_t *block_or_single_to_instrs(block_or_single_t *block_or_single, context_t context) {
     list_t *ret = list_new();
     if (block_or_single->type == SINGLE) {
-        list_concat(ret, stmt_to_instrs(block_or_single->single, env, epilogue_label));
+        list_concat(ret, stmt_to_instrs(block_or_single->single, context));
     } else {
-        list_concat(ret, block_to_instrs(block_or_single->block, epilogue_label));
+        list_concat(ret, block_to_instrs(block_or_single->block, context));
     }
     return ret;
 }
@@ -534,9 +534,21 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
     if (stmt->type == STMT_RETURN) {
         list_t *ret = list_new();
         debug("Found return statement\n");
-        list_t *expr_instrs = expr_to_instrs(stmt->ret->expr, env);
+        list_t *expr_instrs = expr_to_instrs(stmt->ret->expr, context.env);
         list_concat(ret, expr_instrs);
         list_push(ret, instr_jmp(OP_JMP, context.return_label));
+        return ret;
+    }
+
+    if (stmt->type == STMT_BREAK) {
+        list_t *ret = list_new();
+        list_push(ret, instr_jmp(OP_JMP, context.iter_end_label));
+        return ret;
+    }
+
+    if (stmt->type == STMT_CONTINUE) {
+        list_t *ret = list_new();
+        list_push(ret, instr_jmp(OP_JMP, context.iter_start_label));
         return ret;
     }
 
@@ -614,7 +626,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
         string_t *post_for_label = unique_label("post_for");
 
         context.env = stmt->for_stmt->env;
-        context.iter_begin_label = begin_for_label;
+        context.iter_start_label = begin_for_label;
         context.iter_end_label = post_for_label;
 
         list_t *ret = list_new();
@@ -635,7 +647,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
         list_t *ret = list_new();
         string_t *begin_while_label = unique_label("begin_while");
         string_t *post_while_label = unique_label("post_while");
-        context.iter_begin_label = begin_while_label;
+        context.iter_start_label = begin_while_label;
         context.iter_end_label = post_while_label;
 
         list_push(ret, new_label(begin_while_label, LABEL_STATIC));
@@ -657,7 +669,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
         string_t *begin_do_label = unique_label("begin_do");
         string_t *end_do_label = unique_label("end_do");
 
-        context.iter_begin_label = begin_do_label;
+        context.iter_start_label = begin_do_label;
         context.iter_end_label = end_do_label;
         list_push(ret, new_label(begin_do_label, LABEL_STATIC));
         list_concat(ret, block_or_single_to_instrs(stmt->do_stmt->body, context));

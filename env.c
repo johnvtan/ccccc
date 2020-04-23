@@ -5,15 +5,13 @@ env_t *env_new(env_t *parent) {
     if (!new_env)
         return NULL;
 
-    new_env->parent = parent;
+    new_env->parent = parent;var
     new_env->children = list_new();
-    new_env->vars = list_new();
     new_env->homes = map_new();
-    new_env->sp_offset = 0;
 
-    if (parent) {
+    if (parent)
         list_push(parent->children, new_env);
-    }
+
     return new_env;
 }
 
@@ -21,8 +19,15 @@ void *env_get(env_t *env, string_t *var) {
     void *ret = NULL;
     while (env) {
         if ((ret = map_get(env->homes, var)))
-            break;
+            return ret;
         env = env->parent;
     }
-    return ret;
+    return NULL;
+}
+
+void env_add(env_t *env, string_t *name, builtin_type_t type) {
+    var_info_t *info = malloc(sizeof(var_info_t)); 
+    info->type = type;
+    info->declared = false;
+    map_set(env->homes, name, info);
 }
