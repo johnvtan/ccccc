@@ -1,7 +1,7 @@
 #include "compile.h"
 #include <assert.h>
 
-static uint64_t alloc_scoped_env(env_t *env, uint64_t offset) {
+static int alloc_scoped_env(env_t *env, int offset) {
     pair_t *pair;
 
     // Allocate homes for each variable at the current level
@@ -18,7 +18,7 @@ static uint64_t alloc_scoped_env(env_t *env, uint64_t offset) {
     // Recursively allocate vars for all child envs
     env_t *child_env;
     list_for_each(env->children, child_env) {
-        uint64_t child_offset = alloc_scoped_env(child_env, offset); 
+        int child_offset = alloc_scoped_env(child_env, offset); 
         if (child_offset < offset)
             offset = child_offset;
     }
