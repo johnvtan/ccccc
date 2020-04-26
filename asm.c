@@ -234,8 +234,8 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
         list_t *ret = list_new();
         debug("Got primary var: %s\n", string_get(primary->var));
 
-        var_info_t *var_info = env_get(env, primary->var);
-        if (!var_info->declared) {
+        var_info_t *var_info = env_get_declared(env, primary->var);
+        if (!var_info) {
             UNREACHABLE("Compilation error: variable referenced before declaration\n");
         }
         list_push(ret, instr_m2r(OP_MOV, var_info->home, REG_RAX));
@@ -271,8 +271,8 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
 
     if (unary->op == UNARY_POSTINC) {
         debug("post inc\n");
-        var_info_t *var_info = env_get(env, unary->expr->primary->var);
-        if (!var_info->declared) {
+        var_info_t *var_info = env_get_declared(env, unary->expr->primary->var);
+        if (!var_info) {
             UNREACHABLE("assign_to_instrs: variable is used before declaration");
         }
 
@@ -284,9 +284,9 @@ static list_t *unary_to_instrs(unary_expr_t *unary, env_t *env) {
     }
 
     if (unary->op == UNARY_POSTDEC) {
-        var_info_t *var_info = env_get(env, unary->expr->primary->var);
+        var_info_t *var_info = env_get_declared(env, unary->expr->primary->var);
         debug("Found postdec\n");
-        if (!var_info->declared) {
+        if (!var_info) {
             UNREACHABLE("assign_to_instrs: variable is used before declaration");
         }
         //list_push(ret, instr_i2r(OP_SUB, 1, REG_RAX));
@@ -452,8 +452,8 @@ static list_t *assign_to_instrs(assign_t *assign, env_t *env) {
 
     list_t *ret = list_new();
     list_concat(ret, expr_to_instrs(assign->rhs, env));
-    var_info_t *var_info = env_get(env, assign->lhs->primary->var);
-    if (!var_info->declared) {
+    var_info_t *var_info = env_get_declared(env, assign->lhs->primary->var);
+    if (!var_info) {
         UNREACHABLE("assign_to_instrs: variable is used before declaration");
     }
     output_t *mov = instr_r2m(OP_MOV, REG_RAX, var_info->home);
@@ -499,6 +499,7 @@ static list_t *expr_to_instrs(expr_t *expr, env_t *env) {
 static list_t *block_to_instrs(block_t *block, context_t context) {
     list_t *ret = list_new();
     stmt_t *curr_stmt = list_pop(block->stmts);
+    context.env = block->env;
     for (; curr_stmt; curr_stmt = list_pop(block->stmts)) {
         list_concat(ret, stmt_to_instrs(curr_stmt, context));
     }

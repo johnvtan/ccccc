@@ -32,7 +32,11 @@ env_t *env_new(env_t *parent);
 
 // Searches for var in current env. If not found, keeps checking parents until it is found or
 // we run out of envs.
-void *env_get(env_t *env, string_t *var);
+var_info_t *env_get(env_t *env, string_t *var);
+
+// Searches for first declared var starting in current env. If not found, keeps checking
+// parents until it is found or we run out of envs. If it is found but undeclared, keeps searching.
+var_info_t *env_get_declared(env_t *env, string_t *var);
 
 // Adds var to env at current level. 
 void env_add(env_t *env, string_t *var, builtin_type_t type);

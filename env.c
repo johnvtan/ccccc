@@ -15,10 +15,20 @@ env_t *env_new(env_t *parent) {
     return new_env;
 }
 
-void *env_get(env_t *env, string_t *var) {
-    void *ret = NULL;
+var_info_t *env_get(env_t *env, string_t *var) {
+    var_info_t *ret = NULL;
     while (env) {
         if ((ret = map_get(env->homes, var)))
+            return ret;
+        env = env->parent;
+    }
+    return NULL;
+}
+
+var_info_t *env_get_declared(env_t *env, string_t *var) {
+    var_info_t *ret = NULL;
+    while (env) {
+        if ((ret = map_get(env->homes, var)) && ret->declared)
             return ret;
         env = env->parent;
     }
