@@ -1,5 +1,4 @@
 #include "compile.h"
-
 // global - needed for home allocation
 env_t *global_env;
 static expr_t *parse_expr(list_t *tokens, env_t *env);
@@ -175,10 +174,13 @@ static expr_t *parse_primary(list_t *tokens, env_t *env) {
     }
 
     // Anything else, assume it is NULL
+    /*
     debug("Found null expr\n");
     expr_t *expr = malloc(sizeof(expr_t));
     expr->type = NULL_EXPR;
     return expr;
+    */
+    UNREACHABLE("parse: Unrecognized expression\n");
 }
 
 static expr_t *parse_postfix(list_t *tokens, env_t *env) {
