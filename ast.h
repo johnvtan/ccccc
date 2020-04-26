@@ -78,7 +78,7 @@ typedef struct expr {
         BIN_OP,
         TERNARY,
         ASSIGN,
-        NULL_EXPR,
+        NULL_EXPR, // used for optional
     } type;
     union {
         primary_t *primary;
@@ -153,6 +153,7 @@ typedef struct stmt {
         STMT_IF,
         STMT_BLOCK,
         STMT_EXPR,
+        STMT_NULL,
         STMT_FOR,
         STMT_WHILE,
         STMT_DO,

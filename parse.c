@@ -12,6 +12,16 @@ static bool is_valid_lhs(expr_t *expr) {
     return expr && expr->type == PRIMARY && expr->primary->type == PRIMARY_VAR;
 }
 
+static bool is_type(token_type_t type) {
+    switch (type) {
+        case TOK_INT_TYPE:
+        case TOK_CHAR_TYPE:
+            return true;
+        default:
+            return false;
+    }
+}
+
 // Consumes the next token. Program fails if expectation is not met.
 static token_t *expect_next(list_t *tokens, token_type_t expectation) {
     token_t *next = list_pop(tokens);
@@ -144,6 +154,12 @@ static expr_t *new_ternary(expr_t *cond, expr_t *then, expr_t *els) {
     return expr;
 }
 
+static expr_t *new_null_expr(void) {
+    expr_t *expr = malloc(sizeof(expr_t));
+    expr->type = NULL_EXPR;
+    return expr;
+}
+
 static expr_t *parse_primary(list_t *tokens, env_t *env) {
     token_t *curr = list_peek(tokens);
 
@@ -172,14 +188,6 @@ static expr_t *parse_primary(list_t *tokens, env_t *env) {
         expect_next(tokens, TOK_CLOSE_PAREN);
         return new_primary_expr(expr);
     }
-
-    // Anything else, assume it is NULL
-    /*
-    debug("Found null expr\n");
-    expr_t *expr = malloc(sizeof(expr_t));
-    expr->type = NULL_EXPR;
-    return expr;
-    */
     UNREACHABLE("parse: Unrecognized expression\n");
 }
 
@@ -449,6 +457,12 @@ static expr_t *parse_expr(list_t *tokens, env_t *env) {
     return parse_assign(tokens, env);
 }
 
+static expr_t *parse_optional_expr(list_t *tokens, env_t *env, token_type_t delimiter) {
+    if (match(tokens, delimiter))
+        return new_null_expr();
+    return parse_expr(tokens, env);
+}
+
 static return_stmt_t *parse_return_stmt(list_t *tokens, env_t *env) {
     debug("parse_return_stmt: parsing return stmt\n");
     return_stmt_t *ret = malloc(sizeof(return_stmt_t));
@@ -519,8 +533,16 @@ static if_stmt_t *parse_if_stmt(list_t *tokens, env_t *env) {
     return ret;
 }
 
-static bool valid_init_clause(stmt_t *stmt) {
-    return stmt->type == STMT_DECLARE || stmt->type == STMT_EXPR;
+// A for statement init clause is either a declaration or an optional expression.
+static stmt_t *parse_for_init_clause(list_t *tokens, env_t *env) {
+    token_t *curr_token = list_peek(tokens);
+    if (is_type(curr_token->type))
+        return parse_stmt(tokens, env);
+
+    stmt_t *ret = malloc(sizeof(stmt_t));
+    ret->type = STMT_EXPR; 
+    ret->expr = parse_optional_expr(tokens, env, TOK_SEMICOLON);
+    return ret;
 }
 
 static for_stmt_t *parse_for_stmt(list_t *tokens, env_t *env) {
@@ -530,21 +552,17 @@ static for_stmt_t *parse_for_stmt(list_t *tokens, env_t *env) {
     for_stmt_t *ret = malloc(sizeof(for_stmt_t));
     ret->env = env_new(env);
     expect_next(tokens, TOK_OPEN_PAREN);
-    ret->init = parse_stmt(tokens, ret->env);
-    if (!valid_init_clause(ret->init)) {
-        UNREACHABLE("Error: invalid init clause in for loop\n");
-    }
+    ret->init = parse_for_init_clause(tokens, ret->env);
+
     debug("for: got init\n");
-    ret->cond = parse_expr(tokens, ret->env);
+    ret->cond = parse_optional_expr(tokens, ret->env, TOK_SEMICOLON);
     // For loops with no cond should run forever - replace the cond with a nonzero int.
     if (ret->cond->type == NULL_EXPR) {
         ret->cond = new_primary_int(1);
     }
-    expect_next(tokens, TOK_SEMICOLON);
     debug("for: got cond\n");
-    ret->post = parse_expr(tokens, ret->env);
+    ret->post = parse_optional_expr(tokens, ret->env, TOK_CLOSE_PAREN);
     debug("for: got post\n");
-    expect_next(tokens, TOK_CLOSE_PAREN);
     ret->body = parse_block_or_single(tokens, ret->env);
     return ret;
 }
@@ -576,16 +594,6 @@ static do_stmt_t *parse_do_stmt(list_t *tokens, env_t *env) {
     expect_next(tokens, TOK_CLOSE_PAREN);
     expect_next(tokens, TOK_SEMICOLON);
     return ret;
-}
-
-static bool is_type(token_type_t type) {
-    switch (type) {
-        case TOK_INT_TYPE:
-        case TOK_CHAR_TYPE:
-            return true;
-        default:
-            return false;
-    }
 }
 
 static block_t *parse_block(list_t *tokens, env_t *outer) {
@@ -661,14 +669,17 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
     }
 
     // Otherwise, try to parse an expression
-    debug("parse_stmt: Found expression statement\n");
+    if (match(tokens, TOK_SEMICOLON)) {
+        debug("parse_stmt: Found null expr stmt\n");
+        ret->type = STMT_NULL;
+        return ret;
+    }
+
+    debug("parse_stmt: Found nonnull expr stmt\n");
     expr_t *expr = parse_expr(tokens, env);
-    if (!expr)
-        return NULL;
     ret->type = STMT_EXPR;
     ret->expr = expr; 
     expect_next(tokens, TOK_SEMICOLON);
-    debug("semicolon found from expr\n");
     return ret;
 }
 
