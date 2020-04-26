@@ -90,3 +90,11 @@ void list_free(list_t *list) {
     free(list);
 }
 
+inline bool __list_iterate(list_node_t **node, void **data) {
+    if (*node == NULL)
+        return false;
+
+    *data = (*node)->data;
+    *node = (*node)->next;
+    return true;
+}

@@ -1,9 +1,22 @@
 #ifndef ENV_H
 #define ENV_H
 
-#include "map.h"
+#include <stdbool.h>
 #include "list.h"
-#include "ast.h"
+#include "map.h"
+#include "asm_types.h"
+
+typedef enum {
+    TYPE_UNRECOGNIZED,
+    TYPE_INT,
+    TYPE_VOID,
+} builtin_type_t;
+
+typedef struct {
+    builtin_type_t type;
+    mem_loc_t home;
+    bool declared;
+} var_info_t;
 
 // An environment contains all the variable idents mapped to their types in the current scope
 // The pointer to the parent scope lets the user search other scopes to see if a variable is defined

@@ -1,6 +1,7 @@
 #include "list.h"
 #include <stdio.h>
 #include <assert.h>
+#include <stddef.h>
 
 void test_list_concat(void) {
     printf("testing empty concat\n");
@@ -37,10 +38,26 @@ void test_list_pop(void) {
     assert(list.len == 0);
 }
 
+void test_list_for_each(void) {
+    printf("testing list foreach\n");
+    list_t *list = list_new();
+    int items[5] = {2, 3, 1, 4, 5};
+    for (int i = 0; i < 5; i++) {
+        list_push(list, &items[i]);
+    }
+
+    int i = 0;
+    int *item_in_list;
+    list_for_each(list, item_in_list) {
+        assert(items[i++] == *item_in_list);
+    }
+}
+
 int main(void) {
     test_list_push();
     test_list_pop();
     test_list_concat();
+    test_list_for_each();
     printf("tests pass\n");
     return 0;
 }

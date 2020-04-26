@@ -26,7 +26,7 @@ list_t *tokenize(string_t *input);
 program_t *parse(list_t *tokens);
 
 // Allocates homes in place.
-void alloc_homes(env_t *global);
+void alloc_homes(program_t *prog);
 list_t *gen_asm(program_t *prog);
 void print_asm(list_t *output);
 

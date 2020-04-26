@@ -1,4 +1,5 @@
 #include "compile.h"
+
 // global - needed for home allocation
 env_t *global_env;
 static expr_t *parse_expr(list_t *tokens, env_t *env);
@@ -13,7 +14,6 @@ static bool is_valid_lhs(expr_t *expr) {
 }
 
 // Consumes the next token. Program fails if expectation is not met.
-//
 static token_t *expect_next(list_t *tokens, token_type_t expectation) {
     token_t *next = list_pop(tokens);
     if (!next || next->type != expectation) {

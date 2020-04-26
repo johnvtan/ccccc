@@ -12,18 +12,6 @@ struct expr;
 typedef struct expr expr_t;
 typedef struct stmt stmt_t;
 
-typedef enum {
-    TYPE_UNRECOGNIZED,
-    TYPE_INT,
-    TYPE_VOID,
-} builtin_type_t;
-
-typedef struct {
-    builtin_type_t type;
-    mem_loc_t home;
-    bool declared;
-} var_info_t;
-
 typedef struct {
     enum unary_op {
         UNARY_MATH_NEG,
@@ -192,6 +180,7 @@ typedef struct {
     list_t *stmts;
     builtin_type_t ret_type;
     env_t *env; // maps 
+    uint64_t sp_offset;
 } fn_def_t;
 
 // a program is defined as a list of functions

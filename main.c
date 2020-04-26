@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
      * TODO - do variable allocation here.
      */
     debug("Allocating variable homes...\n");
-    alloc_homes(global_env);
+    alloc_homes(prog);
 
     debug("Generating asm...\n");
     list_t *instrs = gen_asm(prog);

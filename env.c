@@ -5,7 +5,7 @@ env_t *env_new(env_t *parent) {
     if (!new_env)
         return NULL;
 
-    new_env->parent = parent;var
+    new_env->parent = parent;
     new_env->children = list_new();
     new_env->homes = map_new();
 

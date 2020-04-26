@@ -18,8 +18,8 @@ void *map_get(map_t *map, string_t *key) {
 
     pair_t *iter;
     list_for_each(map->pairs, iter) {
-        if (string_eq(key, pair->key) == 0) {
-            return pair->value;
+        if (string_eq(key, iter->key) == 0) {
+            return iter->value;
         }
     }
 
@@ -33,8 +33,8 @@ int map_set(map_t *map, string_t *key, void *value) {
     // Overwrite the value if the key already exists in the map
     pair_t *iter;
     list_for_each(map->pairs, iter) {
-        if (string_eq(key, pair->key) == 0) {
-            pair->value = value;
+        if (string_eq(key, iter->key) == 0) {
+            iter->value = value;
             return 0;
         }
     }

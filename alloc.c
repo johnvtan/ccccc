@@ -1,56 +1,35 @@
 #include "compile.h"
 #include <assert.h>
 
-static void alloc_scoped_env(env_t *env, int offset, int *max_offset) {
-    var_t *var var;
-    pair_t *iter;
-    list_for_each(env->homes, iter) {
-        var_t *var = iter->value;
+static uint64_t alloc_scoped_env(env_t *env, uint64_t offset) {
+    pair_t *pair;
 
-        // TODO give the var a home
-        var->home.reg = REG_RBP;
-        var->home.offset = offset;
-
-        debug("Found var %s: home = %d(rbp)\n", string_get(var->name), offset);
-// This seems kinda dirty, but useful-ish for easier lookup
-        // TODO now i just have two lists for the same thing
-        map_set(env->homes, var->name, var);
-
-        if (offset < env->sp_offset) {
-            env->sp_offset = offset;
-        }
-
-        // TODO actually find the size of each variable
-        // For now, assume everything is 64 bits.
-        offset -= 8;
+    // Allocate homes for each variable at the current level
+    map_for_each(env->homes, pair) {
+        var_info_t *v = pair->value;
+        string_t *name = pair->key;
+        debug("Found variable %s\n", string_get(name));
+        v->home.reg = REG_RBP;
+        v->home.offset = offset;
+        offset += 8;
     }
 
-    // TODO rewrite this env sucks
-    if (env->children->len == 0) {
-        env_t *curr = env;
-        while (curr->parent) {
-            if (env->sp_offset < curr->sp_offset)
-                curr->sp_offset = env->sp_offset;
-            curr = curr->parent;
-        }
+    // Recursively allocate vars for all child envs
+    env_t *child_env;
+    list_for_each(env->children, child_env) {
+        uint64_t child_offset = alloc_scoped_env(child_env, offset); 
+        if (child_offset > offset)
+            offset = child_offset;
     }
 
-    list_for_each(env->children, curr_node) {
-        env_t *child_env = (env_t*)curr_node->data;
-        alloc_scoped_env(child_env, offset);
-    }
-
+    return offset;
 }
 
-void alloc_homes(env_t *global) {
-    assert(global->parent == NULL); 
-    assert(global->children->len > 0);
-
-    // for now global variables are homeless. they can't live on the stack.
-    list_for_each(global->children, curr_node) {
-        debug("Iterating through global children\n");
-        env_t *curr_env = (env_t *)curr_node->data;
-        alloc_scoped_env(curr_env, -8);
+void alloc_homes(program_t *prog) {
+    fn_def_t *curr_fn;
+    list_for_each(prog->fn_defs, curr_fn) {
+        debug("allocating for function %s\n", string_get(curr_fn->name));
+        curr_fn->sp_offset = alloc_scoped_env(curr_fn->env, 8);
     }
 }
 

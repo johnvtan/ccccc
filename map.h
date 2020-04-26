@@ -20,4 +20,6 @@ map_t *map_new(void);
 void *map_get(map_t *map, string_t *key);
 int map_set(map_t *map, string_t *key, void *value);
 
+#define map_for_each(map, pair) list_for_each(map->pairs, pair)
+
 #endif
