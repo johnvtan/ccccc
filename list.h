@@ -13,6 +13,9 @@ typedef struct  _list_node {
 typedef struct {
     list_node_t *head;
     list_node_t *tail;
+
+    // extra node used for iterating
+    list_node_t *__iter;
     int len;
 } list_t;
 
@@ -31,7 +34,7 @@ bool __list_iterate(list_node_t **node, void **data);
 #define list_first(list) (list->head->next)
 
 #define list_for_each(list, data_ptr)\
-    list_node_t *__node_iter = list_first(list);\
-    while (__list_iterate(&__node_iter, (void**)&data_ptr))
+    list->__iter = list_first(list);\
+    while (__list_iterate(&list->__iter, (void**)&data_ptr))
 
 #endif
