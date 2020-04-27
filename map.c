@@ -12,18 +12,21 @@ map_t *map_new(void) {
     return ret;
 }
 
+static pair_t *map_get_pair_from_key(map_t *map, string_t *key) {
+    pair_t *pair;
+    list_for_each(map->pairs, pair) {
+        if (string_eq(key, pair->key) == 0) {
+            return pair;
+        }
+    }
+    return NULL;
+}
+
 void *map_get(map_t *map, string_t *key) {
     if (!map)
         return NULL;
-
-    pair_t *iter;
-    list_for_each(map->pairs, iter) {
-        if (string_eq(key, iter->key) == 0) {
-            return iter->value;
-        }
-    }
-
-    return NULL;
+    pair_t *pair = map_get_pair_from_key(map, key);
+    return pair ? pair->value : NULL;
 }
 
 int map_set(map_t *map, string_t *key, void *value) {
@@ -31,19 +34,17 @@ int map_set(map_t *map, string_t *key, void *value) {
         return -1;
 
     // Overwrite the value if the key already exists in the map
-    pair_t *iter;
-    list_for_each(map->pairs, iter) {
-        if (string_eq(key, iter->key) == 0) {
-            iter->value = value;
-            return 0;
-        }
+    pair_t *pair = map_get_pair_from_key(map, key);
+    if (pair) {
+        pair->value = value;
+        return 0;
     }
-    
-    pair_t *new = malloc(sizeof(pair_t));
-    if (!new)
+   
+    pair = malloc(sizeof(pair_t));
+    if (!pair)
         return -1;
-    new->key = key;
-    new->value = value;
-    list_push(map->pairs, new);
+    pair->key = key;
+    pair->value = value;
+    list_push(map->pairs, pair);
     return 0;
 }
