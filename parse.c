@@ -47,6 +47,7 @@ static bool match(list_t *tokens, token_type_t expectation) {
     if (!next || next->type != expectation) {
         return false;
     }
+    debug("Found expected\n");
     list_pop(tokens);
     return true;
 }
@@ -458,7 +459,7 @@ static expr_t *parse_expr(list_t *tokens, env_t *env) {
 }
 
 static expr_t *parse_optional_expr(list_t *tokens, env_t *env, token_type_t delimiter) {
-    if (match(tokens, delimiter))
+    if (check_next(tokens, delimiter))
         return new_null_expr();
     return parse_expr(tokens, env);
 }
@@ -542,6 +543,7 @@ static stmt_t *parse_for_init_clause(list_t *tokens, env_t *env) {
     stmt_t *ret = malloc(sizeof(stmt_t));
     ret->type = STMT_EXPR; 
     ret->expr = parse_optional_expr(tokens, env, TOK_SEMICOLON);
+    expect_next(tokens, TOK_SEMICOLON);
     return ret;
 }
 
@@ -560,8 +562,10 @@ static for_stmt_t *parse_for_stmt(list_t *tokens, env_t *env) {
     if (ret->cond->type == NULL_EXPR) {
         ret->cond = new_primary_int(1);
     }
+    expect_next(tokens, TOK_SEMICOLON);
     debug("for: got cond\n");
     ret->post = parse_optional_expr(tokens, ret->env, TOK_CLOSE_PAREN);
+    expect_next(tokens, TOK_CLOSE_PAREN);
     debug("for: got post\n");
     ret->body = parse_block_or_single(tokens, ret->env);
     return ret;

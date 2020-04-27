@@ -520,6 +520,10 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
     if (!stmt) {
         UNREACHABLE("stmt_to_instrs: stmt is invalid\n");
     }
+    
+    if (stmt->type == STMT_NULL) {
+        return list_new();
+    }
 
     if (stmt->type == STMT_RETURN) {
         list_t *ret = list_new();
