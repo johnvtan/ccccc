@@ -202,22 +202,19 @@ static expr_t *parse_postfix(list_t *tokens, env_t *env) {
         UNREACHABLE("compile error? should at least be a semicolon here\n");
     }
 
-    token_t *curr = list_peek(tokens);
-    if (curr->type == TOK_INCREMENT) {
+    if (match(tokens, TOK_INCREMENT)) {
         debug("Found postinc\n");
         if (!is_valid_lhs(primary_expr)) {
             UNREACHABLE("compile error: trying to postinc invalid lhs\n");
         }
-        list_pop(tokens);
         return new_unary_expr(UNARY_POSTINC, primary_expr);
     }
 
-    if (curr->type == TOK_DECREMENT) {
+    if (match(tokens, TOK_DECREMENT)) {
         debug("Found postdec\n");
         if (!is_valid_lhs(primary_expr)) {
             UNREACHABLE("compile error: trying to postdec invalid lhs\n");
         }
-        list_pop(tokens);
         return new_unary_expr(UNARY_POSTDEC, primary_expr);
     }
 
@@ -229,28 +226,23 @@ static expr_t *parse_unary(list_t *tokens, env_t *env) {
         UNREACHABLE("wtf you doin\n");
     }
 
-    token_t *curr = list_peek(tokens);
-    if (curr->type == TOK_BANG) {
+    if (match(tokens, TOK_BANG)) {
         debug("Found unary bang\n");
-        list_pop(tokens);
         return new_unary_expr(UNARY_LOGICAL_NEG, parse_unary(tokens, env));
     }
 
-    if (curr->type == TOK_TILDE) {
+    if (match(tokens, TOK_TILDE)) {
         debug("Found unary tilde\n");
-        list_pop(tokens);
         return new_unary_expr(UNARY_BITWISE_COMP, parse_unary(tokens, env));
     }
 
-    if (curr->type == TOK_MINUS) {
+    if (match(tokens, TOK_MINUS)) {
         debug("Found unary neg\n");
-        list_pop(tokens);
         return new_unary_expr(UNARY_MATH_NEG, parse_unary(tokens, env));
     }
 
-    if (curr->type == TOK_INCREMENT) {
+    if (match(tokens, TOK_INCREMENT)) {
         debug("Found preincrement\n");
-        list_pop(tokens);
         expr_t *lhs = parse_unary(tokens, env);
         if (!is_valid_lhs(lhs)) {
             UNREACHABLE("Compile error: invalid lhs for preincrement operator\n");
@@ -259,9 +251,8 @@ static expr_t *parse_unary(list_t *tokens, env_t *env) {
         return new_assign(lhs, rhs);
     }
 
-    if (curr->type == TOK_DECREMENT) {
+    if (match(tokens, TOK_DECREMENT)) {
         debug("Found predecrement\n");
-        list_pop(tokens);
         expr_t *lhs = parse_unary(tokens, env);
         if (!is_valid_lhs(lhs)) {
             debug("lhs type: %d\n", (int)lhs->type);
@@ -278,16 +269,16 @@ static expr_t *parse_unary(list_t *tokens, env_t *env) {
 static expr_t *parse_mul_div(list_t *tokens, env_t *env) {
     expr_t *ret = parse_unary(tokens, env);
 
-    token_t *curr = list_peek(tokens);
-    while ((curr = list_peek(tokens)) && curr) {
-        if (curr->type == TOK_MULT) {
+    while (tokens->len) {
+        if (match(tokens, TOK_MULT)) {
             debug("Found mult\n");
-            list_pop(tokens);
             ret = new_bin_expr(BIN_MUL, ret, parse_unary(tokens, env));
-        } else if (curr->type == TOK_DIV) {
+        } else if (match(tokens, TOK_DIV)) {
             debug("Found div\n");
-            list_pop(tokens);
             ret = new_bin_expr(BIN_DIV, ret, parse_unary(tokens, env));
+        } else if (match(tokens, TOK_MODULO)){
+            debug("Found modulo\n");
+            ret = new_bin_expr(BIN_MODULO, ret, parse_mul_div(tokens, env));
         } else {
             break;
         }
@@ -298,15 +289,12 @@ static expr_t *parse_mul_div(list_t *tokens, env_t *env) {
 static expr_t *parse_add_sub(list_t *tokens, env_t *env) {
     expr_t *ret = parse_mul_div(tokens, env);
 
-    token_t *curr;
-    while ((curr = list_peek(tokens)) && curr) {
-        if (curr->type == TOK_PLUS) {
+    while (tokens->len) {
+        if (match(tokens, TOK_PLUS)) {
             debug("Found plus\n");
-            list_pop(tokens);
             ret = new_bin_expr(BIN_ADD, ret, parse_mul_div(tokens, env));
-        } else if (curr->type == TOK_MINUS) {
+        } else if (match(tokens, TOK_MINUS)) {
             debug("Found minus\n");
-            list_pop(tokens);
             ret = new_bin_expr(BIN_SUB, ret, parse_mul_div(tokens, env));
         } else {
             break;
@@ -502,9 +490,11 @@ static declare_stmt_t *parse_declare_stmt(list_t *tokens, env_t *env) {
 static block_or_single_t *parse_block_or_single(list_t *tokens, env_t *env) {
     block_or_single_t *ret = malloc(sizeof(block_or_single_t));
     if (check_next(tokens, TOK_OPEN_BRACE)) {
+        debug("Parsing block\n");
         ret->type = BLOCK;
         ret->block = parse_block(tokens, env);
     } else {
+        debug("Parsing single\n");
         ret->type = SINGLE;
         ret->single = parse_stmt(tokens, env);
         if (ret->single->type == STMT_DECLARE) {
@@ -531,6 +521,7 @@ static if_stmt_t *parse_if_stmt(list_t *tokens, env_t *env) {
         list_pop(tokens);
         ret->els = parse_block_or_single(tokens, env);
     }
+    debug("parse_if_stmt: done\n");
     return ret;
 }
 
@@ -658,6 +649,20 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
         debug("Found do stmt\n");
         ret->do_stmt = parse_do_stmt(tokens, env);
         ret->type = STMT_DO;
+        return ret;
+    }
+
+    if (match(tokens, TOK_BREAK)) {
+        debug("parse_stmt: Found break\n");
+        expect_next(tokens, TOK_SEMICOLON);
+        ret->type = STMT_BREAK;
+        return ret;
+    }
+
+    if (match(tokens, TOK_CONTINUE)) {
+        debug("parse_stmt: Found continue\n");
+        expect_next(tokens, TOK_SEMICOLON);
+        ret->type = STMT_CONTINUE;
         return ret;
     }
 

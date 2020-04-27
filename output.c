@@ -8,6 +8,7 @@ typedef struct reg_pair {
 static const reg_pair_t reg_pairs[] = {
     {.reg = REG_RAX, .string = "%rax"},
     {.reg = REG_RCX, .string = "%rcx"},
+    {.reg = REG_RDX, .string = "%rdx"},
     {.reg = REG_AL, .string = "%al"},
     {.reg = REG_RBP, .string = "%rbp"},
     {.reg = REG_RSP, .string = "%rsp"},

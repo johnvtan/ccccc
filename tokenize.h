@@ -49,6 +49,7 @@ typedef enum token_type {
     TOK_LTE,
     TOK_GT,
     TOK_GTE,
+    TOK_MODULO,
 
     // += is its own token
     TOK_PLUS_EQ,

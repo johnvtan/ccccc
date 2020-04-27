@@ -55,6 +55,7 @@ static const special_char_pair_t special_chars[] = {
     {'>', TOK_GT},
     {'?', TOK_QUESTION},
     {':', TOK_COLON},
+    {'%', TOK_MODULO},
     {0, 0},
 };
 

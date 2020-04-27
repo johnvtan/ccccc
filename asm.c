@@ -376,6 +376,15 @@ static list_t *binop_to_instrs(bin_expr_t *bin, env_t *env) {
         return ret;
     } 
 
+    if (bin->op == BIN_MODULO) {
+        // idivq puts quotient in RAX, remainder in RDX
+        list_push(ret, instr_r2r(OP_XCHG, REG_RAX, REG_RCX));
+        list_push(ret, instr(OP_CQO));
+        list_push(ret, instr_r(OP_DIV, REG_RCX));
+        list_push(ret, instr_r2r(OP_MOV, REG_RDX, REG_RAX));
+        return ret;
+    }
+
     if (bin->op == BIN_EQ) {
         list_push(ret, instr_r2r(OP_CMP, REG_RAX, REG_RCX));
         list_push(ret, instr_i2r(OP_MOV, 0, REG_RAX));
@@ -536,13 +545,13 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
 
     if (stmt->type == STMT_BREAK) {
         list_t *ret = list_new();
-        list_push(ret, instr_jmp(OP_JMP, context.iter_end_label));
+        list_push(ret, instr_jmp(OP_JMP, context.iter_break_label));
         return ret;
     }
 
     if (stmt->type == STMT_CONTINUE) {
         list_t *ret = list_new();
-        list_push(ret, instr_jmp(OP_JMP, context.iter_start_label));
+        list_push(ret, instr_jmp(OP_JMP, context.iter_continue_label));
         return ret;
     }
 
@@ -599,9 +608,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
             list_push(ret, mov);
             return ret;
         }
-        // TODO need better way of signalling that we don't want to add any instructions
-        // for this statement. Empty list?
-        return NULL;
+        return list_new();
     }
 
     if (stmt->type == STMT_EXPR) {
@@ -617,20 +624,24 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
 
     if (stmt->type == STMT_FOR) {
         string_t *begin_for_label = unique_label("begin_for");
-        string_t *post_for_label = unique_label("post_for");
+        string_t *post_for_label = unique_label("end_for");
+        string_t *post_body_label = unique_label("post_for_body");
 
         context.env = stmt->for_stmt->env;
-        context.iter_start_label = begin_for_label;
-        context.iter_end_label = post_for_label;
+        context.iter_continue_label = post_body_label;
+        context.iter_break_label = post_for_label;
 
         list_t *ret = list_new();
         list_concat(ret, stmt_to_instrs(stmt->for_stmt->init, context));
+
         list_push(ret, new_label(begin_for_label, LABEL_STATIC));
         list_concat(ret, expr_to_instrs(stmt->for_stmt->cond, context.env));
         list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
         list_push(ret, instr_jmp(OP_JE, post_for_label));
 
         list_concat(ret, block_or_single_to_instrs(stmt->for_stmt->body, context));
+        list_push(ret, new_label(post_body_label, LABEL_STATIC));
+
         list_concat(ret, expr_to_instrs(stmt->for_stmt->post, context.env));
         list_push(ret, instr_jmp(OP_JMP, begin_for_label));
         list_push(ret, new_label(post_for_label, LABEL_STATIC));
@@ -641,8 +652,8 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
         list_t *ret = list_new();
         string_t *begin_while_label = unique_label("begin_while");
         string_t *post_while_label = unique_label("post_while");
-        context.iter_start_label = begin_while_label;
-        context.iter_end_label = post_while_label;
+        context.iter_continue_label = begin_while_label;
+        context.iter_break_label = post_while_label;
 
         list_push(ret, new_label(begin_while_label, LABEL_STATIC));
 
@@ -663,8 +674,8 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
         string_t *begin_do_label = unique_label("begin_do");
         string_t *end_do_label = unique_label("end_do");
 
-        context.iter_start_label = begin_do_label;
-        context.iter_end_label = end_do_label;
+        context.iter_continue_label = begin_do_label;
+        context.iter_break_label = end_do_label;
         list_push(ret, new_label(begin_do_label, LABEL_STATIC));
         list_concat(ret, block_or_single_to_instrs(stmt->do_stmt->body, context));
         list_concat(ret, expr_to_instrs(stmt->do_stmt->cond, context.env));
@@ -702,8 +713,8 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
 
     context_t context;
     context.return_label = fn_epilogue;
-    context.iter_start_label = NULL;
-    context.iter_end_label = NULL;
+    context.iter_continue_label = NULL;
+    context.iter_break_label = NULL;
     context.env = fn_def->env;
 
     stmt_t *curr_stmt = list_pop(fn_def->stmts);

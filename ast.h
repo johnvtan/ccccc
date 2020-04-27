@@ -37,6 +37,7 @@ typedef struct {
         BIN_NE,
         BIN_AND,
         BIN_OR,
+        BIN_MODULO,
     } op;
     expr_t *lhs;
     expr_t *rhs;

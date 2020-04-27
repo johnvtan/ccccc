@@ -58,8 +58,8 @@ typedef struct {
 
 typedef struct {
     string_t *return_label;
-    string_t *iter_start_label;
-    string_t *iter_end_label;
+    string_t *iter_continue_label;
+    string_t *iter_break_label;
     env_t *env;
 } context_t;
 
