@@ -58,15 +58,6 @@ static bool match(list_t *tokens, token_type_t expectation) {
     return true;
 }
 
-static token_t *match_or_fail(list_t *tokens, token_type_t expectation) {
-    token_t *next = list_pop(tokens);
-    if (!next || next->type != expectation) {
-        UNREACHABLE("match failed\n");
-    }
-    return next;
-}
-
-
 // TODO is this necessar/can i put all types together
 static builtin_type_t token_to_builtin_type(token_type_t t) {
     switch (t) {
@@ -764,7 +755,7 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
 // Returns the name of the variable
 static string_t *parse_param(list_t *tokens, env_t *env) {
     token_t *type_token = list_pop(tokens);
-    token_t *curr = match_or_fail(tokens, TOK_IDENT);
+    token_t *curr = expect_next(tokens, TOK_IDENT);
     env_add(env, curr->ident, token_to_builtin_type(type_token->type));
     return curr->ident;
 }
@@ -815,9 +806,6 @@ static fn_def_t *parse_fn_declaration(list_t *tokens) {
         }
         expect_next(tokens, TOK_COMMA);
     }
-
-
-
     return fn;
 }
 
