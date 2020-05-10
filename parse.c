@@ -184,6 +184,7 @@ static expr_t *new_fn_call(string_t *fn_name, list_t *tokens, env_t *env) {
 
     expr->primary->fn_call = malloc(sizeof(fn_call_t));
     expr->primary->fn_call->fn_name = fn_name;
+    expr->primary->fn_call->param_exprs = NULL;
 
     // Parse parameter expressions
     expect_next(tokens, TOK_OPEN_PAREN);
@@ -192,14 +193,16 @@ static expr_t *new_fn_call(string_t *fn_name, list_t *tokens, env_t *env) {
         return expr;
     }
 
+    expr->primary->fn_call->param_exprs = list_new();
     while (tokens->len) {
         list_push(expr->primary->fn_call->param_exprs, parse_expr(tokens, env));
         if (match(tokens, TOK_CLOSE_PAREN)) {
             break;
         }
+
         expect_next(tokens, TOK_COMMA);
     }
-
+    debug("new_fn_call: done\n");
     return expr;
 }
 
