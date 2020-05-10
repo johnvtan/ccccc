@@ -44,11 +44,19 @@ typedef struct {
 } bin_expr_t;
 
 typedef struct {
+    string_t *fn_name; 
+
+    // The parameters to a function call are a list of expressions
+    list_t *params;
+} fn_call_t;
+
+typedef struct {
     enum primary_type {
         PRIMARY_INT,
         PRIMARY_CHAR,
         PRIMARY_VAR,
         PRIMARY_EXPR,
+        PRIMARY_FN_CALL,
     } type;
     union {
         int integer;
@@ -58,6 +66,8 @@ typedef struct {
         // TODO is this necessary? seems like I could parse these as just another expr_t instead of
         // nesting it like this
         expr_t *expr;
+
+        fn_call_t *fn_call;
     };
 } primary_t;
 
@@ -178,18 +188,20 @@ typedef struct stmt {
 
 typedef struct {
     string_t *name;
-    list_t *params;
-    list_t *stmts;
     builtin_type_t ret_type;
-    env_t *env; // maps 
+    list_t *stmts;
+
+    // parameters are bound in the environment
+    env_t *env;
     uint64_t sp_offset;
 } fn_def_t;
 
-// a program is defined as a list of functions
-// the asm that is emitted will only be blocks of functions. it's the linkers job to make sure they
-// all call the correct memory address or whatever.
 typedef struct {
-    list_t *fn_defs;
+    // A program consists of a bunch of function definitions.
+    // This maps from function name to fn_def_t.
+    // On a declaration, stmts will be NULL.
+    // When the definition is found, stmts will be nonnull.
+    map_t *fn_defs;
 } program_t;
 
 #endif

@@ -27,8 +27,9 @@ static int alloc_scoped_env(env_t *env, int offset) {
 }
 
 void alloc_homes(program_t *prog) {
-    fn_def_t *curr_fn;
-    list_for_each(prog->fn_defs, curr_fn) {
+    pair_t *pair;
+    map_for_each(prog->fn_defs, pair) {
+        fn_def_t *curr_fn = pair->value;
         debug("allocating for function %s\n", string_get(curr_fn->name));
         curr_fn->sp_offset = alloc_scoped_env(curr_fn->env, 0);
     }

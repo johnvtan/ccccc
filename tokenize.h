@@ -33,6 +33,7 @@ typedef enum token_type {
     TOK_OPEN_BRACKET,
     TOK_CLOSE_BRACKET,
     TOK_SEMICOLON,
+    TOK_COMMA,
 
     // unary operators
     TOK_MINUS,

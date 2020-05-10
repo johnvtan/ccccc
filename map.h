@@ -19,6 +19,7 @@ typedef struct map {
 map_t *map_new(void);
 void *map_get(map_t *map, string_t *key);
 int map_set(map_t *map, string_t *key, void *value);
+bool map_contains(map_t *map, string_t *key);
 
 #define map_for_each(map, pair) list_for_each(map->pairs, pair)
 

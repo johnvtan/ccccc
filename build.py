@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import sys
 import subprocess
+import pathlib
+
+compiler_path = pathlib.Path(__file__).parent.absolute()/'COMPILERBABY'
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -12,8 +15,7 @@ if __name__ == '__main__':
         print('error: filename must end with \'.c\' extension')
 
     asm_file = input_file.replace('.c', '.s')
-    # TODO stupid path shit
-    compile_args = ['./../COMPILERBABY', input_file]
+    compile_args = [compiler_path, input_file]
     result = subprocess.Popen(compile_args, stdout=subprocess.PIPE)
     output, _ = result.communicate()
     err = result.returncode

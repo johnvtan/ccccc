@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
 
     debug("Parsing...\n");
     program_t *prog = parse(tokens);
-    if (!prog || !prog->fn_defs || !prog->fn_defs->len)
+    if (!prog || !prog->fn_defs)
         return -1;
 
     /*

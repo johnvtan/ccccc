@@ -39,7 +39,6 @@ int list_concat(list_t *l1, list_t *l2) {
     if (!l1 || !l2)
         return -1;
 
-    // I have a dummy head, I think
     l1->tail->next = l2->head->next;
     if (l2->len)
         l1->tail = l2->tail;

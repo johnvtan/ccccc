@@ -218,10 +218,11 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
     if (!primary) {
         UNREACHABLE("primary_to_instrs: wtf are you doing, primary is null\n");
     }
-
+    debug("primary to instrs\n");
     if (primary->type == PRIMARY_INT) {
         list_t *ret = list_new();
         list_push(ret, instr_i2r(OP_MOV, primary->integer, REG_RAX));
+        debug("int %u\n", primary->integer);
         return ret;
     }
 
@@ -728,7 +729,7 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
     list_push(ret, instr_r2r(OP_MOV, REG_RBP, REG_RSP));
     list_push(ret, instr_r(OP_POP, REG_RBP));
     list_push(ret, instr(OP_RET));
-
+    debug("fn_def_to_asm done\n");
     return ret;
 }
 
@@ -738,8 +739,10 @@ list_t *gen_asm(program_t *prog) {
     }
     debug("=====================Generating ASM=====================\n");
     list_t *output = list_new();
-    fn_def_t *fn_def = list_pop(prog->fn_defs);
-    for (; fn_def; fn_def = list_pop(prog->fn_defs)) {
+
+    pair_t *fn_pair;
+    map_for_each(prog->fn_defs, fn_pair) {
+        fn_def_t *fn_def = fn_pair->value;
         list_t *fn_instrs = fn_def_to_asm(fn_def);
         if (!fn_instrs) {
             UNREACHABLE("gen_asm: null fn_instrs\n");

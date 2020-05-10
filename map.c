@@ -48,3 +48,7 @@ int map_set(map_t *map, string_t *key, void *value) {
     list_push(map->pairs, pair);
     return 0;
 }
+
+bool map_contains(map_t *map, string_t *key) {
+    return map_get_pair_from_key(map, key) ? true : false;
+}
