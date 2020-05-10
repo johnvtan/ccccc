@@ -175,6 +175,34 @@ static expr_t *new_null_expr(void) {
     return expr;
 }
 
+static expr_t *new_fn_call(string_t *fn_name, list_t *tokens, env_t *env) {
+    expr_t *expr = malloc(sizeof(expr_t));
+    expr->type = PRIMARY;
+
+    expr->primary = malloc(sizeof(primary_t));
+    expr->primary->type = PRIMARY_FN_CALL;
+
+    expr->primary->fn_call = malloc(sizeof(fn_call_t));
+    expr->primary->fn_call->fn_name = fn_name;
+
+    // Parse parameter expressions
+    expect_next(tokens, TOK_OPEN_PAREN);
+
+    if (match(tokens, TOK_CLOSE_PAREN)) {
+        return expr;
+    }
+
+    while (tokens->len) {
+        list_push(expr->primary->fn_call->param_exprs, parse_expr(tokens, env));
+        if (match(tokens, TOK_CLOSE_PAREN)) {
+            break;
+        }
+        expect_next(tokens, TOK_COMMA);
+    }
+
+    return expr;
+}
+
 static expr_t *parse_primary(list_t *tokens, env_t *env) {
     debug("parse primary\n");
     token_t *curr = list_peek(tokens);
@@ -192,9 +220,24 @@ static expr_t *parse_primary(list_t *tokens, env_t *env) {
     }
 
     if (curr->type == TOK_IDENT) {
+        // Ident can be either a variable or function call
+        // It seems like really, functions are variables in the global
+        // environment.
         list_pop(tokens);
-        debug("Found identifier: %s\n", string_get(curr->ident));
-        return new_primary_var(curr->ident);
+
+        if (env_get(env, curr->ident)) {
+            // First, assume that the identifier is a variable.
+            debug("Found variable: %s\n", string_get(curr->ident));
+            return new_primary_var(curr->ident);
+        }
+
+        if (map_contains(program->fn_defs, curr->ident)) {
+            // Otherwise, try to see if it's a function call.
+            debug("Found function call: %s\n", string_get(curr->ident));
+            return new_fn_call(curr->ident, tokens, env);
+        }
+
+        UNREACHABLE("Primary: bad ident\n");
     }
 
     if (curr->type == TOK_OPEN_PAREN) {
@@ -322,7 +365,7 @@ static expr_t *parse_relational(list_t *tokens, env_t *env) {
     expr_t *ret = parse_add_sub(tokens, env);
 
     token_t *curr;
-    while ((curr = list_peek(tokens)) && curr) {
+    while ((curr = list_peek(tokens))) {
         if (curr->type == TOK_GT) {
             debug("Found gt");
             list_pop(tokens);
@@ -350,7 +393,7 @@ static expr_t *parse_equality(list_t *tokens, env_t *env) {
     expr_t *ret = parse_relational(tokens, env);
 
     token_t *curr;
-    while ((curr = list_peek(tokens)) && curr) {
+    while ((curr = list_peek(tokens))) {
         if (curr->type == TOK_NE) {
             debug("Found not equal\n");
             list_pop(tokens);
@@ -370,7 +413,7 @@ static expr_t *parse_logical_and(list_t *tokens, env_t *env) {
     expr_t *ret = parse_equality(tokens, env);
 
     token_t *curr;
-    while ((curr = list_peek(tokens)) && curr) {
+    while ((curr = list_peek(tokens))) {
         if (curr->type == TOK_AND) {
             debug("Found logical and expr\n");
             list_pop(tokens);
@@ -386,7 +429,7 @@ static expr_t *parse_logical_or(list_t *tokens, env_t *env) {
     expr_t *ret = parse_logical_and(tokens, env);
 
     token_t *curr;
-    while ((curr = list_peek(tokens)) && curr) {
+    while ((curr = list_peek(tokens))) {
         if (curr->type == TOK_OR) {
             debug("Found logical or expr\n");
             list_pop(tokens);
@@ -715,10 +758,12 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
 }
 
 // Parses var and adds it to the passed in environment
-static void parse_param(list_t *tokens, env_t *env) {
+// Returns the name of the variable
+static string_t *parse_param(list_t *tokens, env_t *env) {
     token_t *type_token = list_pop(tokens);
     token_t *curr = match_or_fail(tokens, TOK_IDENT);
     env_add(env, curr->ident, token_to_builtin_type(type_token->type));
+    return curr->ident;
 }
 
 // Parses the type, name, and parameters of a function definition.
@@ -728,6 +773,7 @@ static fn_def_t *parse_fn_declaration(list_t *tokens) {
     // TODO The only difference between a function declaration and definition
     // is that stmts will be NULL in a declaration
     fn->stmts = NULL; 
+    fn->params = NULL;
 
     fn->env = env_new(global_env);
 
@@ -758,13 +804,16 @@ static fn_def_t *parse_fn_declaration(list_t *tokens) {
         return fn;
     }
 
+    fn->params = list_new();
     while (tokens->len) {
-        parse_param(tokens, fn->env);
+        list_push(fn->params, parse_param(tokens, fn->env));
         if (match(tokens, TOK_CLOSE_PAREN)) {
             break;
         }
         expect_next(tokens, TOK_COMMA);
     }
+
+
 
     return fn;
 }

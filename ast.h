@@ -47,7 +47,7 @@ typedef struct {
     string_t *fn_name; 
 
     // The parameters to a function call are a list of expressions
-    list_t *params;
+    list_t *param_exprs;
 } fn_call_t;
 
 typedef struct {
@@ -190,6 +190,7 @@ typedef struct {
     string_t *name;
     builtin_type_t ret_type;
     list_t *stmts;
+    list_t *params;
 
     // parameters are bound in the environment
     env_t *env;
