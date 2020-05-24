@@ -26,6 +26,7 @@ static int op_to_num_args(opcode_t op) {
         case OP_JMP:
         case OP_JE:
         case OP_JNE:
+        case OP_CALL:
             return 1;
         case OP_RET:
         case OP_CQO:
@@ -174,30 +175,30 @@ static output_t *instr_r(opcode_t op, reg_t src) {
     return out;
 }
 
-static output_t *instr_jmp(opcode_t op, string_t *label) {
-    if (op != OP_JMP && op != OP_JE && op != OP_JNE) {
-        UNREACHABLE("instr_jmp: not a jmp opcode\n");
+static output_t *instr_label(opcode_t op, string_t *label) {
+    if (op != OP_JMP && op != OP_JE && op != OP_JNE && op != OP_CALL) {
+        UNREACHABLE("intsr_label: not a jmp or call opcode\n");
     }
 
     if (!label) {
-        UNREACHABLE("instr_jmp: null label\n");
+        UNREACHABLE("intsr_label: null label\n");
     }
 
-    output_t *jmp = malloc(sizeof(output_t));
-    jmp->type = OUTPUT_INSTR;
+    output_t *out = malloc(sizeof(output_t));
+    out->type = OUTPUT_INSTR;
  
-    jmp->instr.num_args = op_to_num_args(op);
-    if (jmp->instr.num_args != 1) {
-        UNREACHABLE("instr_jmp: opcode has wrong number of args, not even sure how this happens\n");
+    out->instr.num_args = op_to_num_args(op);
+    if (out->instr.num_args != 1) {
+        UNREACHABLE("instr_label: opcode has wrong number of args, not even sure how this happens\n");
     }
 
-    jmp->instr.op = op;
-    jmp->instr.src.type = OPERAND_LABEL;
-    jmp->instr.src.label = label;
-    return jmp;
+    out->instr.op = op;
+    out->instr.src.type = OPERAND_LABEL;
+    out->instr.src.label = label;
+    return out;
 }
 
-static output_t *instr(opcode_t op) {
+static output_t *instr_noarg(opcode_t op) {
     output_t *out = malloc(sizeof(output_t));
     if (!out) {
         UNREACHABLE("instr: malloc failed");
@@ -214,11 +215,73 @@ static output_t *instr(opcode_t op) {
     return out;
 }
 
+static const reg_t ordered_param_regs[] = {
+    REG_RDI,
+    REG_RSI,
+    REG_RDX,
+    REG_RCX,
+    REG_R8,
+    REG_R9,
+};
+
+static list_t *fn_caller_prepare(list_t *params, env_t *env) {
+    debug("fn_caller_prepare\n");
+    list_t *ret = list_new();
+
+    // Push all caller save regs onto the stack
+    list_push(ret, instr_r(OP_PUSH, REG_R10));
+    list_push(ret, instr_r(OP_PUSH, REG_R11));
+    for (int i = 0; i < 6; i++) {
+        list_push(ret, instr_r(OP_PUSH, ordered_param_regs[i]));
+    }
+
+    if (!params || !params->len)
+        return ret;
+
+    if (params->len > 6) {
+        UNREACHABLE("fn_caller_before: Don't support more than 6 parameters yet\n");
+    }
+
+    // Generate code for each parameter and put it into the correct register 
+    int param_number = 0;
+    expr_t *param_expr = list_pop(params);
+    for (; param_expr; param_expr = list_pop(params)) {
+        debug("dealing with param %d\n", param_number);
+        list_concat(ret, expr_to_instrs(param_expr, env));
+        list_push(ret, instr_r2r(OP_MOV, REG_RAX, ordered_param_regs[param_number++]));
+    }
+
+    debug("prepare done\n");
+    return ret;
+}
+
+static list_t *fn_caller_restore(void) {
+    debug("fn_caller_restore\n");
+    list_t *ret = list_new();
+    for (int i = 5; i >= 0; i--) {
+        list_push(ret, instr_r(OP_POP, ordered_param_regs[i]));
+    }
+
+    list_push(ret, instr_r(OP_POP, REG_R11));
+    list_push(ret, instr_r(OP_POP, REG_R10));
+    return ret;
+}
+
+static list_t *fn_callee_prologue(void) {
+    return list_new();
+}
+
+static list_t *fn_callee_epilogue(void) {
+    return list_new();
+}
+
 static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
     if (!primary) {
         UNREACHABLE("primary_to_instrs: wtf are you doing, primary is null\n");
     }
+
     debug("primary to instrs\n");
+
     if (primary->type == PRIMARY_INT) {
         list_t *ret = list_new();
         list_push(ret, instr_i2r(OP_MOV, primary->integer, REG_RAX));
@@ -240,6 +303,15 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
             UNREACHABLE("Compilation error: variable referenced before declaration\n");
         }
         list_push(ret, instr_m2r(OP_MOV, var_info->home, REG_RAX));
+        return ret;
+    }
+
+    if (primary->type == PRIMARY_FN_CALL) {
+        // Parsing checks if this was declared before it was used, so assume this call is good
+        debug("Got fn call for function %s\n", string_get(primary->fn_call->fn_name));
+        list_t *ret = fn_caller_prepare(primary->fn_call->param_exprs, env);
+        list_push(ret, instr_label(OP_CALL, primary->fn_call->fn_name));
+        list_concat(ret, fn_caller_restore());
         return ret;
     }
 
@@ -318,9 +390,9 @@ static list_t *binop_to_instrs(bin_expr_t *bin, env_t *env) {
         string_t *end = unique_label("or_end");
 
         list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
-        list_push(ret, instr_jmp(OP_JE, or_clause_2));
+        list_push(ret, instr_label(OP_JE, or_clause_2));
         list_push(ret, instr_i2r(OP_MOV, 1, REG_RAX));
-        list_push(ret, instr_jmp(OP_JMP, end));
+        list_push(ret, instr_label(OP_JMP, end));
         list_push(ret, new_label(or_clause_2, LABEL_STATIC));
 
         list_concat(ret, expr_to_instrs(bin->rhs, env));
@@ -336,8 +408,8 @@ static list_t *binop_to_instrs(bin_expr_t *bin, env_t *env) {
         string_t *and_clause_2 = unique_label("second_and_clause");
         string_t *end = unique_label("and_end");
         list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
-        list_push(ret, instr_jmp(OP_JNE, and_clause_2));
-        list_push(ret, instr_jmp(OP_JMP, end));
+        list_push(ret, instr_label(OP_JNE, and_clause_2));
+        list_push(ret, instr_label(OP_JMP, end));
         list_push(ret, new_label(and_clause_2, LABEL_STATIC));
         list_concat(ret, expr_to_instrs(bin->rhs, env));
         list_push(ret, new_label(end, LABEL_STATIC));
@@ -372,7 +444,7 @@ static list_t *binop_to_instrs(bin_expr_t *bin, env_t *env) {
 
     if (bin->op == BIN_DIV) {
         list_push(ret, instr_r2r(OP_XCHG, REG_RAX, REG_RCX));
-        list_push(ret, instr(OP_CQO));
+        list_push(ret, instr_noarg(OP_CQO));
         list_push(ret, instr_r(OP_DIV, REG_RCX));
         return ret;
     } 
@@ -380,7 +452,7 @@ static list_t *binop_to_instrs(bin_expr_t *bin, env_t *env) {
     if (bin->op == BIN_MODULO) {
         // idivq puts quotient in RAX, remainder in RDX
         list_push(ret, instr_r2r(OP_XCHG, REG_RAX, REG_RCX));
-        list_push(ret, instr(OP_CQO));
+        list_push(ret, instr_noarg(OP_CQO));
         list_push(ret, instr_r(OP_DIV, REG_RCX));
         list_push(ret, instr_r2r(OP_MOV, REG_RDX, REG_RAX));
         return ret;
@@ -439,10 +511,10 @@ static list_t *ternary_to_instrs(ternary_t *ternary, env_t *env) {
     list_concat(ret, expr_to_instrs(ternary->cond, env));
 
     list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
-    list_push(ret, instr_jmp(OP_JE, els_label));
+    list_push(ret, instr_label(OP_JE, els_label));
 
     list_concat(ret, expr_to_instrs(ternary->then, env));
-    list_push(ret, instr_jmp(OP_JMP, post_cond_label));
+    list_push(ret, instr_label(OP_JMP, post_cond_label));
 
     list_push(ret, new_label(els_label, LABEL_STATIC));
     list_concat(ret, expr_to_instrs(ternary->els, env));
@@ -540,19 +612,19 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
         debug("Found return statement\n");
         list_t *expr_instrs = expr_to_instrs(stmt->ret->expr, context.env);
         list_concat(ret, expr_instrs);
-        list_push(ret, instr_jmp(OP_JMP, context.return_label));
+        list_push(ret, instr_label(OP_JMP, context.return_label));
         return ret;
     }
 
     if (stmt->type == STMT_BREAK) {
         list_t *ret = list_new();
-        list_push(ret, instr_jmp(OP_JMP, context.iter_break_label));
+        list_push(ret, instr_label(OP_JMP, context.iter_break_label));
         return ret;
     }
 
     if (stmt->type == STMT_CONTINUE) {
         list_t *ret = list_new();
-        list_push(ret, instr_jmp(OP_JMP, context.iter_continue_label));
+        list_push(ret, instr_label(OP_JMP, context.iter_continue_label));
         return ret;
     }
 
@@ -569,15 +641,15 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
 
         if (stmt->if_stmt->els) {
             string_t *else_label = unique_label("else");
-            list_push(ret, instr_jmp(OP_JE, else_label));
+            list_push(ret, instr_label(OP_JE, else_label));
             list_concat(ret, then_instrs);
-            list_push(ret, instr_jmp(OP_JMP, post_cond_label));
+            list_push(ret, instr_label(OP_JMP, post_cond_label));
             list_push(ret, new_label(else_label, LABEL_STATIC));
             list_concat(ret, block_or_single_to_instrs(stmt->if_stmt->els, context));
             list_push(ret, post_cond_label_output);
         } else {
             // No else statement, just emit the then instructions
-            list_push(ret, instr_jmp(OP_JE, post_cond_label));
+            list_push(ret, instr_label(OP_JE, post_cond_label));
             list_concat(ret, then_instrs);
             list_push(ret, post_cond_label_output);
         }
@@ -638,13 +710,13 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
         list_push(ret, new_label(begin_for_label, LABEL_STATIC));
         list_concat(ret, expr_to_instrs(stmt->for_stmt->cond, context.env));
         list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
-        list_push(ret, instr_jmp(OP_JE, post_for_label));
+        list_push(ret, instr_label(OP_JE, post_for_label));
 
         list_concat(ret, block_or_single_to_instrs(stmt->for_stmt->body, context));
         list_push(ret, new_label(post_body_label, LABEL_STATIC));
 
         list_concat(ret, expr_to_instrs(stmt->for_stmt->post, context.env));
-        list_push(ret, instr_jmp(OP_JMP, begin_for_label));
+        list_push(ret, instr_label(OP_JMP, begin_for_label));
         list_push(ret, new_label(post_for_label, LABEL_STATIC));
         return ret;
     }
@@ -661,10 +733,10 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
         list_concat(ret, expr_to_instrs(stmt->while_stmt->cond, context.env));
 
         list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
-        list_push(ret, instr_jmp(OP_JE, post_while_label));
+        list_push(ret, instr_label(OP_JE, post_while_label));
 
         list_concat(ret, block_or_single_to_instrs(stmt->while_stmt->body, context));
-        list_push(ret, instr_jmp(OP_JMP, begin_while_label));
+        list_push(ret, instr_label(OP_JMP, begin_while_label));
         list_push(ret, new_label(post_while_label, LABEL_STATIC));
 
         return ret;
@@ -681,7 +753,7 @@ static list_t *stmt_to_instrs(stmt_t *stmt, context_t context) {
         list_concat(ret, block_or_single_to_instrs(stmt->do_stmt->body, context));
         list_concat(ret, expr_to_instrs(stmt->do_stmt->cond, context.env));
         list_push(ret, instr_i2r(OP_CMP, 0, REG_RAX));
-        list_push(ret, instr_jmp(OP_JNE, begin_do_label));
+        list_push(ret, instr_label(OP_JNE, begin_do_label));
         list_push(ret, new_label(end_do_label, LABEL_STATIC));
         return ret;
     }
@@ -695,6 +767,8 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
     if (!fn_def || !fn_def->name || !fn_def->stmts) {
         UNREACHABLE("fn_def_to_asm: malformed fn_def\n");
     }
+
+    debug("Compiling function %s\n", string_get(fn_def->name));
 
     // TODO totally skipping params now
     // TODO type checking on return type, but also skipping that for now 
@@ -728,7 +802,7 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
     list_push(ret, epilogue_label);
     list_push(ret, instr_r2r(OP_MOV, REG_RBP, REG_RSP));
     list_push(ret, instr_r(OP_POP, REG_RBP));
-    list_push(ret, instr(OP_RET));
+    list_push(ret, instr_noarg(OP_RET));
     debug("fn_def_to_asm done\n");
     return ret;
 }

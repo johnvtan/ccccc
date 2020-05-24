@@ -39,6 +39,6 @@ var_info_t *env_get(env_t *env, string_t *var);
 var_info_t *env_get_declared(env_t *env, string_t *var);
 
 // Adds var to env at current level. 
-void env_add(env_t *env, string_t *var, builtin_type_t type);
+void env_add(env_t *env, string_t *var, builtin_type_t type, bool declared);
 
 #endif

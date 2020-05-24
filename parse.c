@@ -14,10 +14,6 @@ static bool is_valid_lhs(expr_t *expr) {
     return expr && expr->type == PRIMARY && expr->primary->type == PRIMARY_VAR;
 }
 
-static bool fn_was_declared(string_t *fn_name) {
-    return map_contains(program->fn_defs, fn_name);    
-}
-
 static bool is_type(token_type_t type) {
     switch (type) {
         case TOK_INT_TYPE:
@@ -525,7 +521,7 @@ static declare_stmt_t *parse_declare_stmt(list_t *tokens, env_t *env) {
     }
     declare->name = next->ident;
     debug("parse_declare_stmt: Found variable %s\n", string_get(declare->name));
-    env_add(env, declare->name, declare->type);
+    env_add(env, declare->name, declare->type, false);
 
     list_pop(tokens);
     next = list_peek(tokens);
@@ -756,7 +752,9 @@ static stmt_t *parse_stmt(list_t *tokens, env_t *env) {
 static string_t *parse_param(list_t *tokens, env_t *env) {
     token_t *type_token = list_pop(tokens);
     token_t *curr = expect_next(tokens, TOK_IDENT);
-    env_add(env, curr->ident, token_to_builtin_type(type_token->type));
+
+    // The parameter should automatically be declared when it's a parameter.
+    env_add(env, curr->ident, token_to_builtin_type(type_token->type), true);
     return curr->ident;
 }
 

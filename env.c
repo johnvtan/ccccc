@@ -35,9 +35,9 @@ var_info_t *env_get_declared(env_t *env, string_t *var) {
     return NULL;
 }
 
-void env_add(env_t *env, string_t *name, builtin_type_t type) {
+void env_add(env_t *env, string_t *name, builtin_type_t type, bool declared) {
     var_info_t *info = malloc(sizeof(var_info_t)); 
     info->type = type;
-    info->declared = false;
+    info->declared = declared;
     map_set(env->homes, name, info);
 }

@@ -7,11 +7,20 @@ typedef struct reg_pair {
 
 static const reg_pair_t reg_pairs[] = {
     {.reg = REG_RAX, .string = "%rax"},
+    {.reg = REG_RBX, .string = "%rbx"},
     {.reg = REG_RCX, .string = "%rcx"},
     {.reg = REG_RDX, .string = "%rdx"},
     {.reg = REG_AL, .string = "%al"},
     {.reg = REG_RBP, .string = "%rbp"},
     {.reg = REG_RSP, .string = "%rsp"},
+    {.reg = REG_RSI, .string = "%rsi"},
+    {.reg = REG_RDI, .string = "%rdi"},
+
+    {.reg = REG_R8, .string = "%r8"},
+    {.reg = REG_R9, .string = "%r9"},
+    {.reg = REG_R10, .string = "%r10"},
+    {.reg = REG_R11, .string = "%r11"},
+
     {0, NULL},
 };
 
@@ -55,6 +64,7 @@ static const op_pair_t op_pairs[] = {
     {.op = OP_JMP, .string = "jmp"},
     {.op = OP_JE, .string = "je"},
     {.op = OP_JNE, .string = "jne"},
+    {.op = OP_CALL, .string = "call"},
     {0, NULL},
 };
 

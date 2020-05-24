@@ -34,7 +34,10 @@ bool __list_iterate(list_node_t **node, void **data);
 #define list_first(list) (list->head->next)
 
 #define list_for_each(list, data_ptr)\
-    list->__iter = list_first(list);\
-    while (__list_iterate(&list->__iter, (void**)&data_ptr))
+    (list)->__iter = list_first(list);\
+    while (__list_iterate(&(list)->__iter, (void**)&(data_ptr)))
+
+#define list_for_each_pop(list, data_ptr)\
+    for (; (data_ptr); (data_ptr) = list_pop(list))\
 
 #endif
