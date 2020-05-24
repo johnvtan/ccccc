@@ -267,12 +267,50 @@ static list_t *fn_caller_restore(void) {
     return ret;
 }
 
-static list_t *fn_callee_prologue(void) {
-    return list_new();
+static list_t *fn_callee_prologue(fn_def_t *fn_def) {
+    // function prologue
+    list_t *ret = list_new();
+
+    // Allocate space for locals
+    list_push(ret, instr_r(OP_PUSH, REG_RBP));
+    list_push(ret, instr_r2r(OP_MOV, REG_RSP, REG_RBP));
+    list_push(ret, instr_i2r(OP_ADD, fn_def->sp_offset, REG_RSP));
+
+    // Save callee-save registers
+    list_push(ret, instr_r(OP_PUSH, REG_RBX));
+    //list_push(ret, instr_r(OP_PUSH, REG_R12));
+    //list_push(ret, instr_r(OP_PUSH, REG_R13));
+    //list_push(ret, instr_r(OP_PUSH, REG_R14));
+    //list_push(ret, instr_r(OP_PUSH, REG_R15));
+
+    if (!fn_def->params || !fn_def->params->len)
+        return ret;
+
+    // Move parameters from registers into their homes on the stack
+    string_t *var_name;
+    var_info_t *var_info;
+    int param_number = 0;
+    list_for_each(fn_def->params, var_name) {
+        var_info = map_get(fn_def->env->homes, var_name);
+        list_push(ret, instr_r2m(OP_MOV, ordered_param_regs[param_number++], var_info->home));
+    }
+    return ret;
 }
 
 static list_t *fn_callee_epilogue(void) {
-    return list_new();
+    list_t *ret = list_new();
+
+    // Restore callee-save registers
+    //list_push(ret, instr_r(OP_PUSH, REG_R15));
+    //list_push(ret, instr_r(OP_PUSH, REG_R14));
+    //list_push(ret, instr_r(OP_PUSH, REG_R13));
+    //list_push(ret, instr_r(OP_PUSH, REG_R12));
+    list_push(ret, instr_r(OP_PUSH, REG_RBX));
+
+    list_push(ret, instr_r2r(OP_MOV, REG_RBP, REG_RSP));
+    list_push(ret, instr_r(OP_POP, REG_RBP));
+
+    return ret;
 }
 
 static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
@@ -312,6 +350,8 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
         list_t *ret = fn_caller_prepare(primary->fn_call->param_exprs, env);
         list_push(ret, instr_label(OP_CALL, primary->fn_call->fn_name));
         list_concat(ret, fn_caller_restore());
+
+        // Return value should still be in RAX
         return ret;
     }
 
@@ -775,12 +815,7 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
     list_t *ret = list_new();
     output_t *fn_label = new_label(fn_def->name, LABEL_GLOBAL);
     list_push(ret, fn_label);
-
-    // function prologue
-    list_push(ret, instr_r(OP_PUSH, REG_RBP));
-    list_push(ret, instr_r2r(OP_MOV, REG_RSP, REG_RBP));
-
-    list_push(ret, instr_i2r(OP_ADD, fn_def->sp_offset, REG_RSP));
+    list_concat(ret, fn_callee_prologue(fn_def));
     
     // function epilogue label
     string_t *fn_epilogue = unique_label("fn_epilogue");
@@ -800,9 +835,9 @@ static list_t *fn_def_to_asm(fn_def_t *fn_def) {
 
     // function epilogue
     list_push(ret, epilogue_label);
-    list_push(ret, instr_r2r(OP_MOV, REG_RBP, REG_RSP));
-    list_push(ret, instr_r(OP_POP, REG_RBP));
+    list_concat(ret, fn_callee_epilogue());
     list_push(ret, instr_noarg(OP_RET));
+
     debug("fn_def_to_asm done\n");
     return ret;
 }
