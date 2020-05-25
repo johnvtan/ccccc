@@ -20,6 +20,7 @@ typedef struct {
         UNARY_POSTINC,
         UNARY_POSTDEC,
     } op;
+    builtin_type_t c_type;
     expr_t *expr;
 } unary_expr_t;
 
@@ -39,6 +40,8 @@ typedef struct {
         BIN_OR,
         BIN_MODULO,
     } op;
+
+    builtin_type_t c_type;
     expr_t *lhs;
     expr_t *rhs;
 } bin_expr_t;
@@ -48,6 +51,7 @@ typedef struct {
 
     // The parameters to a function call are a list of expressions
     list_t *param_exprs;
+    builtin_type_t c_type;
 } fn_call_t;
 
 typedef struct {
@@ -58,6 +62,8 @@ typedef struct {
         PRIMARY_EXPR,
         PRIMARY_FN_CALL,
     } type;
+
+    builtin_type_t c_type;
     union {
         int integer;
         char character;
@@ -66,7 +72,6 @@ typedef struct {
         // TODO is this necessary? seems like I could parse these as just another expr_t instead of
         // nesting it like this
         expr_t *expr;
-
         fn_call_t *fn_call;
     };
 } primary_t;
@@ -74,12 +79,14 @@ typedef struct {
 typedef struct {
     expr_t *lhs;
     expr_t *rhs;
+    builtin_type_t c_type;
 } assign_t;
 
 typedef struct {
     expr_t *cond;
     expr_t *then;
     expr_t *els;
+    builtin_type_t c_type;
 } ternary_t;
 
 typedef struct expr {
@@ -91,6 +98,8 @@ typedef struct expr {
         ASSIGN,
         NULL_EXPR, // used for optional
     } type;
+
+    builtin_type_t c_type;
     union {
         primary_t *primary;
         unary_expr_t *unary;
