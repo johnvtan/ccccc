@@ -206,19 +206,22 @@ static expr_t *new_fn_call(fn_def_t *fn_def, list_t *tokens, env_t *env) {
 
     // Parse parameter expressions
     expect_next(tokens, TOK_OPEN_PAREN);
-
-    if (match(tokens, TOK_CLOSE_PAREN)) {
-        return expr;
+    
+    // Handle functions without parameters.
+    if (!fn_def->params || fn_def->params->len == 0) {
+        if (match(tokens, TOK_CLOSE_PAREN)) {
+            return expr;
+        } else {
+            UNREACHABLE("new_fn_call: Mismatching function call - declaration has no params, but call has some\n");
+        }
     }
 
     expr->primary->fn_call->param_exprs = list_new();
 
     string_t *param_name;
-    var_info_t *param_info;
-    expr_t *param_expr;
     list_for_each(fn_def->params, param_name) {
-        param_expr = parse_expr(tokens, env); 
-        param_info = map_get(fn_def->env->homes, param_name); 
+        expr_t *param_expr = parse_expr(tokens, env); 
+        var_info_t *param_info = map_get(fn_def->env->homes, param_name); 
         debug("parsing param %s\n", string_get(param_name));
         debug("declared type %u, expr type %u\n", param_info->type, param_expr->c_type);
         if (param_expr->c_type != param_info->type) {
@@ -567,8 +570,13 @@ static declare_stmt_t *parse_declare_stmt(list_t *tokens, env_t *env) {
         debug("Error in parse_declare_stmt: No identifier found following the type.\n");
         return NULL;
     }
+
     declare->name = next->ident;
     debug("parse_declare_stmt: Found variable %s\n", string_get(declare->name));
+
+    if (map_contains(env->homes, declare->name)) {
+        UNREACHABLE("parse_declare_stmt: variable is redeclared!\n");
+    }
     env_add(env, declare->name, declare->type, false);
 
     list_pop(tokens);
