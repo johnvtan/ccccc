@@ -9,6 +9,7 @@
 typedef enum {
     TYPE_UNRECOGNIZED,
     TYPE_INT,
+    TYPE_CHAR,
     TYPE_VOID,
 } builtin_type_t;
 

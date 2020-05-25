@@ -67,44 +67,63 @@ static builtin_type_t token_to_builtin_type(token_type_t t) {
 }
 
 static expr_t *new_bin_expr(enum bin_op op, expr_t *lhs, expr_t *rhs) {
-    if (!rhs || !lhs)
-        return NULL;
+    if (!rhs || !lhs) {
+        UNREACHABLE("");
+    }
+
+    if (rhs->c_type != lhs->c_type) {
+        UNREACHABLE("new_bin_expr: lhs type doesn't match rhs type\n");
+    }
+
     expr_t *expr = malloc(sizeof(bin_expr_t));
-    if (!expr)
-        return NULL;
+    if (!expr) {
+        UNREACHABLE("");
+    }
 
     expr->bin = malloc(sizeof(bin_expr_t));
-    if (!expr->bin)
-        return NULL;
+    if (!expr->bin) {
+        UNREACHABLE("");
+    }
     expr->type = BIN_OP;
     expr->bin->op = op;
     expr->bin->lhs = lhs;
     expr->bin->rhs = rhs;
+    expr->c_type = lhs->c_type;
     return expr;
 }
 
 static expr_t *new_unary_expr(enum unary_op op, expr_t *inner) {
-    if (!inner)
-        return NULL;
+    if (!inner) {
+        UNREACHABLE("");
+    }
+
     expr_t *expr = malloc(sizeof(unary_expr_t));
-    if (!expr)
-        return NULL;
+    if (!expr) {
+        UNREACHABLE("");
+    }
     expr->unary = malloc(sizeof(unary_expr_t));
-    if (!expr->unary)
-        return NULL;
+    if (!expr->unary) {
+        UNREACHABLE("");
+    }
     expr->type = UNARY_OP;
     expr->unary->op = op;
     expr->unary->expr = inner;
+    expr->c_type = inner->c_type;
     return expr;
 }
 
 static expr_t *new_assign(expr_t *lhs, expr_t *rhs) {
-   expr_t *ret = malloc(sizeof(expr_t)); 
-   ret->type = ASSIGN;
-   ret->assign = malloc(sizeof(assign_t));
-   ret->assign->lhs = lhs;
-   ret->assign->rhs = rhs;
-   return ret;
+    if (lhs->c_type != rhs->c_type) {
+        // TODO implicit type conversions?
+        UNREACHABLE("new_assign: lhs type doesn't equal rhs type\n");
+    }
+    expr_t *ret = malloc(sizeof(expr_t)); 
+    ret->type = ASSIGN;
+    ret->assign = malloc(sizeof(assign_t));
+    ret->assign->lhs = lhs;
+    ret->assign->rhs = rhs;
+    ret->c_type = lhs->c_type;
+    return ret;
 }
 
 static expr_t *new_primary_int(int val) {
@@ -113,19 +132,22 @@ static expr_t *new_primary_int(int val) {
     expr->primary = malloc(sizeof(primary_t));
     expr->primary->type = PRIMARY_INT;
     expr->primary->integer = val;
+    expr->c_type = TYPE_INT;
     return expr;
 }
 
 static expr_t *new_primary_char(char c) {
+    UNREACHABLE("NO CHARS!\n");
     expr_t *expr = malloc(sizeof(expr_t));
     expr->type = PRIMARY;
     expr->primary = malloc(sizeof(primary_t));
     expr->primary->type = PRIMARY_CHAR;
     expr->primary->integer = c;
+    expr->c_type = TYPE_CHAR;
     return expr;
 }
 
-static expr_t *new_primary_var(string_t *var) {
+static expr_t *new_primary_var(string_t *var, builtin_type_t type) {
     if (!var) {
         UNREACHABLE("new_primary_var: invalid var\n");
     }
@@ -134,6 +156,7 @@ static expr_t *new_primary_var(string_t *var) {
     expr->primary = malloc(sizeof(primary_t));
     expr->primary->type = PRIMARY_VAR;
     expr->primary->var = var;
+    expr->c_type = type;
     return expr;
 }
 
@@ -143,26 +166,33 @@ static expr_t *new_primary_expr(expr_t *e) {
     expr->primary = malloc(sizeof(primary_t));
     expr->primary->type = PRIMARY_EXPR;
     expr->primary->expr = e;
+    expr->c_type = e->c_type;
     return expr;
 }
 
 static expr_t *new_ternary(expr_t *cond, expr_t *then, expr_t *els) {
+    if (then->c_type != els->c_type) {
+        UNREACHABLE("new_ternary: then clause doesn't match else clause type\n");
+    }
     expr_t *expr = malloc(sizeof(expr_t));
     expr->type = TERNARY;
     expr->ternary = malloc(sizeof(ternary_t));
     expr->ternary->cond = cond;
     expr->ternary->then = then;
     expr->ternary->els = els;
+    expr->c_type = then->c_type;
     return expr;
 }
 
 static expr_t *new_null_expr(void) {
+    debug("new_null_expr called\n");
     expr_t *expr = malloc(sizeof(expr_t));
     expr->type = NULL_EXPR;
+    expr->c_type = TYPE_VOID;
     return expr;
 }
 
-static expr_t *new_fn_call(string_t *fn_name, list_t *tokens, env_t *env) {
+static expr_t *new_fn_call(fn_def_t *fn_def, list_t *tokens, env_t *env) {
     expr_t *expr = malloc(sizeof(expr_t));
     expr->type = PRIMARY;
 
@@ -170,8 +200,9 @@ static expr_t *new_fn_call(string_t *fn_name, list_t *tokens, env_t *env) {
     expr->primary->type = PRIMARY_FN_CALL;
 
     expr->primary->fn_call = malloc(sizeof(fn_call_t));
-    expr->primary->fn_call->fn_name = fn_name;
+    expr->primary->fn_call->fn_name = fn_def->name;
     expr->primary->fn_call->param_exprs = NULL;
+    expr->c_type = fn_def->ret_type;
 
     // Parse parameter expressions
     expect_next(tokens, TOK_OPEN_PAREN);
@@ -181,14 +212,29 @@ static expr_t *new_fn_call(string_t *fn_name, list_t *tokens, env_t *env) {
     }
 
     expr->primary->fn_call->param_exprs = list_new();
-    while (tokens->len) {
-        list_push(expr->primary->fn_call->param_exprs, parse_expr(tokens, env));
+
+    string_t *param_name;
+    var_info_t *param_info;
+    expr_t *param_expr;
+    list_for_each(fn_def->params, param_name) {
+        param_expr = parse_expr(tokens, env); 
+        param_info = map_get(fn_def->env->homes, param_name); 
+        debug("parsing param %s\n", string_get(param_name));
+        debug("declared type %u, expr type %u\n", param_info->type, param_expr->c_type);
+        if (param_expr->c_type != param_info->type) {
+            UNREACHABLE("new_fn_call: param expr type doesn't match declaration\n");
+        }
+        list_push(expr->primary->fn_call->param_exprs, param_expr);
         if (match(tokens, TOK_CLOSE_PAREN)) {
             break;
         }
-
         expect_next(tokens, TOK_COMMA);
     }
+
+    if (fn_def->params->len != expr->primary->fn_call->param_exprs->len) {
+        UNREACHABLE("new_fn_call: number of parsed param exprs doesn't match number in declaration\n");
+    }
+
     debug("new_fn_call: done\n");
     return expr;
 }
@@ -215,16 +261,18 @@ static expr_t *parse_primary(list_t *tokens, env_t *env) {
         // environment.
         list_pop(tokens);
 
-        if (env_get(env, curr->ident)) {
+        var_info_t *var_info;
+        if ((var_info = env_get(env, curr->ident))) {
             // First, assume that the identifier is a variable.
             debug("Found variable: %s\n", string_get(curr->ident));
-            return new_primary_var(curr->ident);
+            return new_primary_var(curr->ident, var_info->type);
         }
 
-        if (map_contains(program->fn_defs, curr->ident)) {
+        fn_def_t *fn_def;
+        if ((fn_def = map_get(program->fn_defs, curr->ident))) {
             // Otherwise, try to see if it's a function call.
             debug("Found function call: %s\n", string_get(curr->ident));
-            return new_fn_call(curr->ident, tokens, env);
+            return new_fn_call(fn_def, tokens, env);
         }
 
         UNREACHABLE("Primary: bad ident\n");

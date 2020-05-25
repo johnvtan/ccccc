@@ -318,13 +318,17 @@ static list_t *primary_to_instrs(primary_t *primary, env_t *env) {
         UNREACHABLE("primary_to_instrs: wtf are you doing, primary is null\n");
     }
 
-    debug("primary to instrs\n");
+    debug("primary to instrs: %u\n", primary->type);
 
     if (primary->type == PRIMARY_INT) {
         list_t *ret = list_new();
         list_push(ret, instr_i2r(OP_MOV, primary->integer, REG_RAX));
         debug("int %u\n", primary->integer);
         return ret;
+    }
+
+    if (primary->type == PRIMARY_CHAR) {
+        UNREACHABLE("primary_to_instrs: Got a char???\n");
     }
 
     if (primary->type == PRIMARY_EXPR) {
@@ -544,6 +548,7 @@ static list_t *binop_to_instrs(bin_expr_t *bin, env_t *env) {
 }
 
 static list_t *ternary_to_instrs(ternary_t *ternary, env_t *env) {
+    debug("ternary\n");
     list_t *ret = list_new();
     string_t *els_label = unique_label("else");
     string_t *post_cond_label = unique_label("post_cond");
