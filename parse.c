@@ -795,6 +795,7 @@ static fn_def_t *parse_fn_declaration(list_t *tokens) {
         return fn;
     }
 
+    // Parse parameter list
     fn->params = list_new();
     while (tokens->len) {
         list_push(fn->params, parse_param(tokens, fn->env));
@@ -807,6 +808,53 @@ static fn_def_t *parse_fn_declaration(list_t *tokens) {
 }
 
 static bool fn_def_is_equal(fn_def_t *fn1, fn_def_t *fn2) {
+    if (string_eq(fn1->name, fn2->name) != 0) {
+        // Should never see this case...
+        return false;
+    }
+
+    if (fn1->ret_type != fn2->ret_type) {
+        debug("mismatching return types\n");
+        return false;
+    }
+
+    if (fn1->params == NULL && fn2->params == NULL)
+        return true;
+
+    if ((fn1->params == NULL && fn2->params != NULL)
+            || (fn1->params != NULL && fn2->params == NULL)) {
+
+        debug("mismatching params: one has no params, but the other does\n");
+        return false;
+    }
+
+    if (fn1->params->len != fn2->params->len) {
+        debug("one has %u params, the other has %u\n", fn1->params->len, fn2->params->len);
+        return false;
+    }
+
+    list_node_t *n1 = list_first(fn1->params);
+    list_node_t *n2 = list_first(fn2->params);
+    string_t *v1_name;
+    string_t *v2_name;
+    var_info_t *v1;
+    var_info_t *v2;
+    for (int i = 0; i < fn1->params->len; i++) {
+        v1_name = n1->data;
+        v2_name = n2->data;
+
+        v1 = map_get(fn1->env->homes, v1_name);
+        v2 = map_get(fn2->env->homes, v2_name);
+
+        if (v1->type != v2->type) {
+            debug("mismatching param types for param %s\n", string_get(v1_name));
+            return false;
+        }
+
+        n1 = n1->next;
+        n2 = n2->next;
+    }
+
     return true;
 }
 
