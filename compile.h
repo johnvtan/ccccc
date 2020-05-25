@@ -13,8 +13,10 @@
 #include "asm.h"
 
 #define UNREACHABLE(msg) \
+    do {\
     printf("%s line %d: Reached unreachable branch with message - %s\n", __FILE__, __LINE__, msg);\
-    exit(-1);
+    exit(-1);\
+    } while(0);
 
 #ifdef DEBUG
 #define debug(...) do { fprintf(stderr, __VA_ARGS__); } while(0) 

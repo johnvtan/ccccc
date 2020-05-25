@@ -852,6 +852,8 @@ list_t *gen_asm(program_t *prog) {
     pair_t *fn_pair;
     map_for_each(prog->fn_defs, fn_pair) {
         fn_def_t *fn_def = fn_pair->value;
+        if (!fn_def->stmts)
+            continue;
         list_t *fn_instrs = fn_def_to_asm(fn_def);
         if (!fn_instrs) {
             UNREACHABLE("gen_asm: null fn_instrs\n");

@@ -27,6 +27,6 @@ if __name__ == '__main__':
         out.write(output.decode('utf-8'))
 
     executable = asm_file.replace('.s', '')
-    assemble_args = ['gcc', asm_file, '-o', executable]
+    assemble_args = ['gcc', '-no-pie', asm_file, '-o', executable]
     subprocess.run(assemble_args)
     

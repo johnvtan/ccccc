@@ -772,8 +772,7 @@ static fn_def_t *parse_fn_declaration(list_t *tokens) {
     // first token should be a type
     token_t *curr = list_pop(tokens);
     if (!curr) {
-        debug("Error in parse_fn_def: no tokens\n");
-        return NULL;
+        UNREACHABLE("parse_fn_declaration: No more tokens but there should be more?\n");
     }
 
     fn->ret_type = token_to_builtin_type(curr->type);
@@ -807,6 +806,10 @@ static fn_def_t *parse_fn_declaration(list_t *tokens) {
     return fn;
 }
 
+static bool fn_def_is_equal(fn_def_t *fn1, fn_def_t *fn2) {
+    return true;
+}
+
 program_t *parse(list_t *tokens) {
     program = malloc(sizeof(program_t));
     program->fn_defs = map_new();
@@ -814,9 +817,26 @@ program_t *parse(list_t *tokens) {
 
     while (tokens->len) {
         fn_def_t *next_fn = parse_fn_declaration(tokens);
-        map_set(program->fn_defs, next_fn->name, next_fn);
+        fn_def_t *prev_decl = map_get(program->fn_defs, next_fn->name);
+
+        if (!prev_decl) {
+            // This is the first declaration, which we need to put in the map
+            map_set(program->fn_defs, next_fn->name, next_fn);
+            prev_decl = next_fn; 
+        } else if (!fn_def_is_equal(next_fn, prev_decl)) {
+            UNREACHABLE("Compilation error: Function declarations don't match\n");
+        }
+
         if (!match(tokens, TOK_SEMICOLON)) {
+            // This means that we have a body for the function declaration
+            if (prev_decl->stmts != NULL) {
+                UNREACHABLE("Compilation error: Function redefined\n");
+            }
+
+            // We have a definition with statements, so parse the statements and update
+            // definition in the map.
             next_fn->stmts = parse_stmt_list(tokens, next_fn->env);
+            map_set(program->fn_defs, next_fn->name, next_fn);
         }
     }
     return program;
